@@ -1,3 +1,12 @@
+libscriptalicious-perl (1.01) unstable; urgency=low
+
+  * Fixed version number input - now accepts $main::VERSION as per
+    widespread convention
+  * Added SEE ALSO section based on feedback from module-
+    authors@perl.org
+
+ -- Sam Vilain <sam@vilain.net>  Tue, 13 Apr 2004 10:26:27 +1200
+
 libscriptalicious-perl (1.00) unstable; urgency=low
 
   * Initial release

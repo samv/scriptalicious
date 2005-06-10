@@ -6,6 +6,8 @@ use strict;
 use warnings;
 use Carp qw(croak);
 
+our $VERSION = "1.01";
+
 =head1 NAME
 
 Scriptalicious - Delicious scripting goodies
@@ -13,8 +15,9 @@ Scriptalicious - Delicious scripting goodies
 =head1 SYNOPSIS
 
  use Scriptalicious
-      -progname => "pu",
-      -version => $VERSION;
+      -progname => "pu";
+ 
+ our $VERSION = "1.00";
  
  my $url = ".";
  getopt("u|url" => \$url);
@@ -73,7 +76,8 @@ Scriptalicious - Delicious scripting goodies
 This module helps you write scripts, quickly.  Just include the above
 as a template.  Unfortunately, it is not possible to have a `use'
 dependency automatically add structure to your POD yet, so you have to
-include the above manually.
+include the above manually.  If you want your help message to be
+meaningful, that is.
 
 To avoid all that unnecessary explicit importing of symbols, the
 following symbols and functions are exported into the caller's
@@ -111,8 +115,6 @@ BEGIN {
 }
 
 
-our $VERSION = "1.00";
-
 our ($VERBOSE, $closure);
 $VERBOSE = 0;
 
@@ -128,7 +130,8 @@ sub import {
 	if ( $_[$i] =~ m/^-(.*)/ ) {
 	    die "Bad option `$1' from $pkg"
 		unless *{uc($1)}{SCALAR};
-	    ${uc($1)} = $_[$i+1];
+	    my $x = uc($1); ($x eq "VERSION") && ($x="main::$x");
+	    ${$x} = $_[$i+1];
 	    (@_) = (@_[0..($i-1)], @_[($i+2)..$#_]);
 	    $i--;
 	}
@@ -374,7 +377,48 @@ sub capture_err {
     return ($rv, join "", @output)
 }
 
+=item B<capture2("command", "--opt")>
+
+Like B<capture>, but returns two strings - one the standard output
+stream of the program, and one the standard error.  Normally the two
+streams are combined.  Currently unimplemented - contact the author to
+contribute an implementation.
+
+=cut
+
+sub capture2 {
+    die "capture2 not implemented yet"
+}
+
+=item B<foo()>
+
+If you've got a short little Perl function that implements something
+useful for people writing Shell scripts in Perl, then please feel free
+to contribute it.  And if it really is scriptalicious, you can bet
+your momma on it getting into this module!
+
 =back
+
+=head1 SEE ALSO
+
+Simon Cozen's L<Getopt::Auto> module does a very similar thing to this
+module, in a quite different way.  However, it is missing C<say>,
+C<run>, etc.  So you'll need to use some other module for those.  But
+it does have some other features you might like and is probably
+engineered better.
+
+There's a template script at L<Getopt::Long/Documentation and help
+texts> that contains a script template that demonstrates what is
+necessary to get the basic man page / usage things working with the
+traditional L<Getopt::Long> and L<Pod::Usage> combination.
+
+L<Getopt::Plus> is a swiss army chainsaw of Getopt::* style modules,
+contrasting to this module's approach of elegant simplicity (quiet in
+the cheap seats!).
+
+If you have solved this problem in a new and interesting way, or even
+rehashed it in an old, boring and inelegant way and want your module
+to be listed here, please contact the
 
 =head1 AUTHOR
 
@@ -549,6 +593,15 @@ sub usage {
 sub show_usage {
     print STDERR &short_usage;
     exit(1);
+}
+
+sub show_version {
+    print "This is ".$PROGNAME.", "
+	.( defined($main::VERSION)
+	   ? "version ".$main::VERSION."\n"
+	   : "with no version, so stick it up your source repository!\n" );
+
+    exit(0);
 }
 
 sub show_help {

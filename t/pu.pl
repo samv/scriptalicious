@@ -1,7 +1,8 @@
 
 use Scriptalicious
-     -progname => "pu",
-     -version => $VERSION;
+     -progname => "pu";
+
+our $VERSION = "1.00";
 
 my $url = ".";
 getopt("u|url" => \$url);

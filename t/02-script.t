@@ -2,7 +2,7 @@
 
 use strict;
 
-use Test::More tests => 5;
+use Test::More tests => 6;
 use Scriptalicious;
 
 (my $path = $INC{"Scriptalicious.pm"}) =~ s{/[^/]*$}{};
@@ -20,3 +20,8 @@ $output = join "", @output;
 like($output, qr/^pu: aborting:/m, "spots invalid arguments");
 like($output, qr/^Try `(pu --help|perldoc.*)'/m,
      "suggests where to find help");
+
+($rc, @output)
+    = capture_err($^X, "-Mlib=$path", "t/pu.pl", "--version");
+$output = join "", @output;
+like($output, qr/^This is pu, version 1.00/m, "spots invalid arguments");
