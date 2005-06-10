@@ -31,6 +31,7 @@ build-stamp:
 	# Add here commands to compile the package.
 	$(PERL) Build.PL installdirs=vendor
 	./Build
+	./Build test
 
 	touch build-stamp
 

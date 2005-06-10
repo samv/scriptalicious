@@ -6,7 +6,7 @@ use strict;
 use warnings;
 use Carp qw(croak);
 
-our $VERSION = "1.01";
+our $VERSION = "1.02";
 
 =head1 NAME
 
@@ -225,7 +225,7 @@ sub whisper { say @_ if $VERBOSE > 1 }
 sub _err_say { print STDERR "$PROGNAME: @_\n" }
 sub abort { _err_say "aborting: @_"; &show_usage; }
 sub moan { _err_say "warning: @_" }
-sub barf { _err_say "ERROR: @_" }
+sub barf { _err_say "ERROR: @_"; exit(1); }
 
 #---------------------------------------------------------------------
 #  helpers for running commands and/or capturing their output
@@ -289,7 +289,8 @@ sub do_fork {
 sub _waitpid {
     my $pid = shift;
 
-    if ($VERBOSE >= 1 or $next_cmd_no_hide) {
+    if (not $next_cmd_capture and
+	($VERBOSE >= 1 or $next_cmd_no_hide)) {
         waitpid($pid, 0);
     } else {
         while (<CHILD>) {
@@ -374,7 +375,7 @@ Usage:
 sub capture_err {
     local($next_cmd_capture) = 1;
     my $rv = run_err(@_);
-    return ($rv, join "", @output)
+    return ($rv, @output)
 }
 
 =item B<capture2("command", "--opt")>

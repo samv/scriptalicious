@@ -22,7 +22,9 @@ run("touch", "t/testfile");
 ok( -f "t/testfile", "run()");
 unlink("t/testfile");
 
-my ($error, $output) = capture_err("head -5 $0");
+my ($error, @output) = capture_err("head -5 $0");
+
+my $output = join "", @output;
 
 is($error, 0, "capture_err() - error code");
 is($output, `head -5 $0`, "capture_err() - output");

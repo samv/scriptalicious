@@ -1,3 +1,12 @@
+libscriptalicious-perl (1.02) unstable; urgency=low
+
+  * Made barf actually barf :-}
+  * Fixed bug with capture and -v - error "Warning: unable to close
+    filehandle CHILD properly."
+  * output from capture_err matches documentation
+
+ -- Sam Vilain <sam@vilain.net>  Thu, 15 Apr 2004 12:24:16 +1200
+
 libscriptalicious-perl (1.01) unstable; urgency=low
 
   * Fixed version number input - now accepts $main::VERSION as per
