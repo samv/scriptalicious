@@ -1,0 +1,12 @@
+MANIFEST
+README
+META.yml
+lib/Scriptalicious.pm
+t/01-mmmdelicious.t
+t/02-script.t
+t/pu.pl
+Build.PL
+debian/changelog
+debian/control
+debian/copyright
+debian/rules

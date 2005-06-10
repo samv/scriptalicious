@@ -1,0 +1,16 @@
+Source: libscriptalicious-perl
+Priority: optional
+Maintainer: samv@cpan.org
+Build-Depends: debhelper (>> 3.0.0), libmodule-build-perl
+Standards-Version: 3.5.2
+
+Package: libscriptalicious-perl
+Section: libs
+Architecture: all
+Depends: ${perl:Depends}, libpod-constants-perl
+Recommends: libterm-readkey-perl, libtime-hires-perl | perl (>= 5.8.1)
+Description: Delicious scripting goodies
+ This module helps you write scripts, quickly, that behave themselves,
+ in Perl.
+ .
+ Using some easy conventions for POD

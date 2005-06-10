@@ -1,0 +1,18 @@
+--- #YAML:1.0
+name: Scriptalicious
+version: 1.00
+license: perl
+distribution_type: module
+requires: {}
+recommends:
+  Term::ReadKey: 0
+  Text::Wrap: 0
+  Time::HiRes: 0
+build_requires:
+  Test::More: 0
+conflicts: {}
+provides:
+  Scriptalicious:
+    file: lib/Scriptalicious.pm
+    version: 1.00
+generated_by: Module::Build version 0.20
