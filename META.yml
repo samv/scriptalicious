@@ -1,9 +1,10 @@
 --- #YAML:1.0
 name: Scriptalicious
-version: 1.04
+version: 1.04_01
+author:
+  - Sam Vilain, samv@cpan.org
+abstract: Delicious scripting goodies
 license: perl
-distribution_type: module
-requires: {}
 recommends:
   Term::ReadKey: 0
   Text::Wrap: 0
@@ -11,9 +12,8 @@ recommends:
   YAML: 0
 build_requires:
   Test::More: 0
-conflicts: {}
 provides:
   Scriptalicious:
     file: lib/Scriptalicious.pm
-    version: 1.04
-generated_by: Module::Build version 0.20
+    version: 1.04_01
+generated_by: Module::Build version 0.25

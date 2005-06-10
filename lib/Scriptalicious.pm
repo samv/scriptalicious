@@ -6,7 +6,7 @@ use strict;
 use warnings;
 use Carp qw(croak);
 
-our $VERSION = "1.04";
+our $VERSION = "1.04_01";
 
 =head1 NAME
 
@@ -107,7 +107,9 @@ BEGIN {
     our @EXPORT = qw(say mutter whisper abort moan barf run run_err
 		     capture capture_err getopt $VERBOSE $PROGNAME
 		     start_timer show_delta show_elapsed getconf
-		     getconf_f sci_unit);
+		     getconf_f sci_unit prompt_for prompt_passwd
+		     prompt_yn prompt_string prompt_regex prompt_file
+		    );
 }
 
 
@@ -281,6 +283,11 @@ and exits with an error code.
 Prints a warning to standard error.  It is preceded with the text
 C<warning:>.  The program does not exit.
 
+=item B<protest "don't know the weather report">
+
+Prints an error message to standard error.  It is preceded with the
+text C<error:>.  The program does not exit.
+
 =item B<barf "hit an iceberg">
 
 Prints a warning to standard error.  It is preceded with the text
@@ -294,6 +301,7 @@ sub whisper { say @_ if $VERBOSE > 1 }
 sub _err_say { print STDERR "$PROGNAME: @_\n" }
 sub abort { _err_say "aborting: @_"; &show_usage; }
 sub moan { _err_say "warning: @_" }
+sub protest { _err_say "error: @_" }
 sub barf { if($^S){die"@_"}else{ _err_say "ERROR: @_"; exit(1); } }
 
 #---------------------------------------------------------------------
@@ -481,6 +489,39 @@ to exa).  Optionally specify a precision which is passed to sprintf()
 The scripts assumes an ISO-8559-1 encoding on output, and so will
 print a MU character (\265) to mean micro.
 
+=item B<prompt_regex($prompt, qr/(.*)/)>
+
+Prompts for something, using the prompt "C<$prompt>", matching the
+entered value (sans trailing linefeed) against the passed regex.
+
+=item B<prompt_sub($prompt, sub { /(.*)/ && $1 })>
+
+Prompts for something, using the prompt "C<$prompt>", feeding the sub
+with the entered value (sans trailing linefeed), to use a default, the
+passed sub should simply return it with empty input.
+
+=item B<prompt_passwd([$prompt])>
+
+Same as C<prompt_regex>, but turns off echo.  C<$prompt> defaults to
+"C<Password: >" for this function.
+
+=item B<prompt_string([$prompt])>
+
+=item B<prompt_for([$what])>
+
+Prompt for a string.  The C<prompt_for()> method is just semantic
+sugar.
+
+=item B<prompt_yn([$prompt])>
+
+prompts for yes or no, presuming neither
+
+=item B<prompt_Yn([$prompt])>
+
+=item B<prompt_yN([$prompt])>
+
+prompts for yes or no, presuming yes and no, respectively.
+
 =item B<foo()>
 
 If you've got a short little Perl function that implements something
@@ -517,12 +558,12 @@ Sam Vilain, samv@cpan.org
 
 =cut
 
-our $DATA = join "", <DATA>;  close DATA;
-our ($AUTOLOAD, $l);sub AUTOLOAD{croak"No such function $AUTOLOAD"if
-$l;(undef,my($f,$n))=ll();$n+=2;eval"# line $n \"$f\"\n$DATA";
-$@&&die"Error in autoload: $@";
-$l=1;goto &{$AUTOLOAD};}sub ll{sub{caller()}->();}     "P E A C E";
-__DATA__
+#our $DATA = join "", <DATA>;  close DATA;
+#our ($AUTOLOAD, $l);sub AUTOLOAD{croak"No such function $AUTOLOAD"if
+#$l;(undef,my($f,$n))=ll();$n+=2;eval"# line $n \"$f\"\n$DATA";
+#$@&&die"Error in autoload: $@";
+#$l=1;goto &{$AUTOLOAD};}sub ll{sub{caller()}->();}     "P E A C E";
+#__DATA__
 
 our ($NAME, $SHORT_DESC, $SYNOPSIS, $DESCRIPTION, @options);
 
@@ -914,3 +955,165 @@ sub _process_conf {
     }
 }
 
+our $term;
+our $APPEND;
+
+sub term {
+    $term ||= do {
+	eval { require Term::ReadLine;
+	       Term::ReadLine->new(__PACKAGE__);
+	   } || (bless { IN => \*STDIN,
+			 OUT => \*STDOUT }, __PACKAGE__);
+    };
+}
+
+sub OUT { $_[0]->{OUT} }
+sub IN  { $_[0]->{IN} }
+
+sub readline {
+    my $self = shift;
+    my $prompt = shift;
+
+    my $OUT = $self->OUT;
+    my $IN = $self->OUT;
+
+    print $OUT "$prompt? ";
+    my $res = readline $IN;
+    chomp($res);
+
+    return $res;
+}
+
+sub prompt_passwd {
+    my $prompt = shift || "Password: ";
+
+    eval {
+	require Term::ReadKey;
+    };
+    barf "cannot load Term::ReadKey" if $@;
+
+    Term::ReadKey::ReadMode('noecho');
+    my $passwd;
+    eval { $passwd = prompt_sub($prompt, @_) };
+    Term::ReadKey::ReadMode('restore');
+    die $@ if $@;
+    $passwd;
+}
+
+sub prompt_sub {
+    my $prompt = shift;
+    my $sub = shift;
+    my $moan = shift;
+    while ( defined ($_ = term->readline($prompt)) ) {
+	#print "\n";
+	if ( $sub ) {
+	    if ( defined(my $res = $sub->($_)) ) {
+		return $res;
+	    } else {
+		protest ($moan || "bad response `$_'");
+	    }
+	} else {
+	    return $_;
+	}
+    }
+    barf "EOF on input";
+}
+
+sub prompt_regex {
+    my $prompt = shift;
+    my $re = shift;
+    prompt_sub($prompt, sub {
+		   if ( my ($match) = m/$re/ ) {
+		       return (defined($match) ? $match : $_)
+		   } else {
+		       return undef;
+		   }
+	       }, @_);
+}
+
+sub prompt_for {
+    my $what = shift;
+    my $default = shift;
+    prompt_sub( ("Value for $what"
+		 .($default?" [$default]":"")
+		 .": "),
+		sub { $_ || $default },
+	      ),
+}
+
+sub prompt_file {
+    my $prompt = shift;
+    my $sub = shift || sub { chop; return (-e $_ ? $_ : undef) };
+    my $moan = shift || "File does not exist!";
+    my $term = term;
+    my $attr;
+    if ( $term->can("Attribs") ) {
+	$attr = $term->Attribs;
+	$attr->{completion_function} = \&complete_file;
+	# yes, this is an awful hack.
+	if ( $term =~ /HASH/ and $term->{gnu_readline_p} ) {
+	    $APPEND = "completion_append_character"; # gnu
+	} else {
+	    $APPEND = "completer_terminator_character"; #perl 
+	}
+    }
+    my $file = prompt_sub($prompt, $sub, $moan, @_);
+    if ( $attr ) {
+	$attr->{completion_function} = undef;
+    }
+    return $file;
+}
+
+# ReadLine completion function.  Don't use the built-in one because it
+# sucks arse.
+sub complete_file {
+    my ($text, $line, $start) = @_;
+    (my $dir = $line) =~ s{[^/]*$}{};
+    (my $file = $line) =~ s{.*/}{};
+    ($line =~ m/^(.*\s)/g);
+    $start = (defined($1) ? length($1) : 0);
+    if ( !defined $dir or !length $dir ) {
+	$dir = "./";
+	$start += 2;
+    }
+    $file ||= "";
+    #print STDERR "Completing: DIR='$dir' FILE='$file'\n";
+    if ( -d $dir ) {
+	opendir DIR, $dir or return;
+	my @files = (map { $dir.$_ }
+		     grep { !/^\.\.?$/ && m/^\Q$file\E/ }
+		     readdir DIR);
+	closedir DIR;
+	if ( @files == 1 && -d $files[0] ) {
+	    term->Attribs->{$APPEND} = "/";
+	} else {
+	    term->Attribs->{$APPEND} = " ";
+	}
+	#print STDERR "Completions: ".join(":",@files)."\n";
+	return map { substr $_, $start } @files;
+    }
+}
+
+sub prompt_string {
+    my $prompt = shift;
+    prompt_regex($prompt, qr/(.*)/);
+}
+
+sub prompt_Yn {
+    prompt_sub ($_[0], sub {( /^\s*(?: (?:(y.*))? | (n.*))\s*$/ix &&
+				($2 ? 0 : (defined($1) ? 1 : undef)) 
+			      )} );
+}
+sub prompt_yn {
+    prompt_sub ($_[0], sub {( /^\s*(?: (y.*) | (n.*))\s*$/ix &&
+				($2 ? 0 : ($1 ? 1 : undef)) 
+			      )},
+		  "please enter `yes', or `no'" );
+}
+sub prompt_yN {
+    prompt_sub ($_[0], sub {( /^\s*(?: (y.*)? | (?:(n.*))? )\s*$/ix &&
+				($1 ? 1 : (defined($2) ? 0 : undef)) 
+			      )} );
+}
+
+1;
