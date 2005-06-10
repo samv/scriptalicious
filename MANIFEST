@@ -1,10 +1,13 @@
 MANIFEST
 README
+Changes
 META.yml
-lib/Scriptalicious.pm
+lib/Scriptalicious.pm		Mmm, Scriptalicious
 t/01-mmmdelicious.t
 t/02-script.t
+t/03-yaml.t
 t/pu.pl
+t/eg.conf
 Build.PL
 debian/changelog
 debian/control

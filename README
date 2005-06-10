@@ -28,6 +28,9 @@ Pod::Parser (which should be standard with recent Perls).
 If you don't, you can still use `perldoc foo.pl' on the installed
 scripts, so it's still better than nothing.
 
+You will need the YAML module for the nifty new getopt-style YAML
+config file processor.
+
 Optional Modules
 ^^^^^^^^^^^^^^^^
 If you want your help screens to look nice with all terminal sizes,

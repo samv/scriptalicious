@@ -12,6 +12,7 @@ Module::Build->new
 		     'Term::ReadKey' => 0,
 		     'Text::Wrap' => 0,
 		     'Time::HiRes' => 0,
+		     'YAML' => 0,
 		    },
       build_requires => {
 			 'Test::More' => 0,

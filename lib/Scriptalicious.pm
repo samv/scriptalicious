@@ -6,7 +6,7 @@ use strict;
 use warnings;
 use Carp qw(croak);
 
-our $VERSION = "1.02";
+our $VERSION = "1.03";
 
 =head1 NAME
 
@@ -20,7 +20,7 @@ Scriptalicious - Delicious scripting goodies
  our $VERSION = "1.00";
  
  my $url = ".";
- getopt("u|url" => \$url);
+ getopt getconf("u|url" => \$url);
  
  run("echo", "doing something with $url");
  my $output = capture("svn", "info", $url);
@@ -85,12 +85,6 @@ namespace:
 
 =over
 
-=item B<getopt(@getopt_args)>
-
-This just calls Getopt::Long::GetOptions (see L<Getopt::Long> for
-details).  It automatically adds to the arguments you give it some
-"standard" command line options.
-
 =item C<$VERBOSE>
 
 Set to 0 by default, and 1 if C<-v> or C<--verbose> was found during
@@ -111,7 +105,9 @@ use base qw(Exporter);
 
 BEGIN {
     our @EXPORT = qw(say mutter whisper abort moan barf run run_err
-		     capture capture_err getopt $VERBOSE $PROGNAME);
+		     capture capture_err getopt $VERBOSE $PROGNAME
+		     start_timer show_delta show_elapsed getconf
+		     getconf_f sci_unit);
 }
 
 
@@ -183,6 +179,79 @@ sub getopt {
 	if $#ARGV >= 0 and $ARGV[0] =~ m/^-/;
 }
 
+=item B<getconf(@getopt_args)>
+
+Fetches configuration, takes arguments in the same form as
+B<getopt()>..
+
+The configuration file is expected to be in F<~/.PROGNAMErc>,
+F</etc/perl/PROGNAME.conf>, or F</etc/PROGNAME.conf>.  Only the first
+found file is read, and unknown options are ignored for the time
+being.
+
+The file is expected to be in YAML format, with the top entity being a
+hash, and the keys of the hash being the same as specifying options on
+the command line.  Using YAML as a format allows some simplificiations
+to getopt-style processing - C<=s%> and C<=s@> style options are
+expected to be in a real hash or list format in the config file, and
+boolean options must be set to C<true> or C<false> (or some common
+equivalents).
+
+Returns the configuration file as Load()'ed by YAML in scalar context,
+or the argument list it was passed in list context.
+
+For example, this script should work As You'd Expect(tm):
+
+  getopt getconf
+      ( "something|s" => \$foo,
+        "invertable|I!" => \$invertable,
+        "integer|i=i" => \$bar,
+        "string|s=s" => \$cheese,
+        "list|l=s@" => \@list,
+        "hash|H=s%" => \%hash, );
+
+Examples of valid command lines for such a script:
+
+  foo.pl --something
+  foo.pl --invertable
+  foo.pl --no-invertable    <=== FORM DIFFERS IN CONFIG FILE
+  foo.pl --integer=7
+  foo.pl --string=anything
+  foo.pl --list one --list two --list three
+  foo.pl --hash foo=bar --hash baz=cheese
+
+Equivalent config files:
+
+  something: 1
+
+  invertable: on
+
+  invertable: off
+
+  integer: 7
+
+  string: anything
+
+  list:
+    - one
+    - two
+    - three
+
+  list: [ one, two, three ]
+
+  hash:
+    foo: bar
+    baz: cheese
+
+Note that more complex and possibly arcane usages of Getopt::Long
+features may not work with getconf (patches welcome).
+
+=item B<getconf_f($filename, @getopt_args)>
+
+As B<getconf()>, but specify a filename.
+
+=cut
+
 =item B<say "something">
 
 Prints a message to standard output, unless quiet mode (C<-q> or
@@ -225,7 +294,170 @@ sub whisper { say @_ if $VERBOSE > 1 }
 sub _err_say { print STDERR "$PROGNAME: @_\n" }
 sub abort { _err_say "aborting: @_"; &show_usage; }
 sub moan { _err_say "warning: @_" }
-sub barf { _err_say "ERROR: @_"; exit(1); }
+sub barf { if($^S){die"@_"}else{ _err_say "ERROR: @_"; exit(1); } }
+
+sub getconf {
+    my $conf_obj;
+    eval 'use YAML'; barf "failed to include YAML; $@" if $@;
+    for my $loc ( "$ENV{HOME}/.${PROGNAME}rc",
+		  "/etc/perl/$PROGNAME.conf",
+		  "/etc/$PROGNAME.conf",
+		  "POD"
+		) {
+	
+	eval {
+	    $conf_obj = getconf_f($loc);
+	};
+	if ( $@ ) {
+	    if ( $@ =~ /^no such config/ ) {
+		next;
+	    } else {
+		barf "error processing config file $loc; $@";
+	    }
+	} else {
+	    last;
+	}
+    }
+    if ( wantarray ) {
+	return @_;
+    } else {
+	return $conf_obj;
+    }
+}
+
+sub getconf_f {
+    my $filename = shift;
+    eval 'use YAML'; barf "failed to include YAML; $@" if $@;
+
+    my $conf_obj;
+
+    if ( $filename eq "POD" ) {
+	eval "use Pod::Constants";
+	barf "no such config file <POD>" if $@;
+
+	my $conf;
+	Pod::Constants::import_from_file
+		($0, "DEFAULT_CONFIG_FILE" => \$conf);
+	$conf or barf "no such config section";
+	eval { $conf_obj = YAML::Load($conf) };
+
+    } else {
+	barf "no such config file $filename" unless -f $filename;
+
+	open CONF, "<$filename"
+	    or barf "failed to open config file $filename; $!";
+	whisper "about to set YAML on config file $filename";
+	eval { $conf_obj = YAML::Load(join "", <CONF>); };
+	close CONF;
+    }
+    barf "YAML exception parsing config file $filename: $@" if $@;
+    whisper "YAML on config file $filename complete";
+
+    return _process_conf($filename, $conf_obj, @_);
+}
+
+sub _process_conf {
+    my $filename = shift;
+    my $conf_obj = shift;
+    my @save__ = @_ if wantarray;
+    while ( my ($opt, $target) = splice @_, 0, 2 ) {
+
+	# wheels, reinvented daily, around the world.
+	my ($opt_list, $type) = ($opt =~ m{^([^!+=:]*)([!+=:].*)?$});
+	$type ||= "";
+	my @names = split /\|/, $opt_list;
+
+	for my $name ( @names ) {
+	    if ( exists $conf_obj->{$name} ) {
+		whisper "found config option `$name'";
+
+		my $val = $conf_obj->{$name};
+
+		# if its a hash or a list, don't beat around the bush,
+		# just assign it.
+		if ( $type =~ m{\@$} ) {
+		    ref $target eq "ARRAY" or
+			croak("$opt: list options must be assigned "
+			      ."to an array ref, not `$target'");
+
+		    ref $val eq "ARRAY"
+			or barf("list specified in config options, "
+				."but `$val' found in config file "
+				." $filename for option $name"
+				.($name ne $names[0]
+				  ? " (synonym for $names[0])" : ""));
+		    @{$target} = @{$val};
+		    last;
+		}
+		elsif ( $type =~ m{\%$} ) {
+		    ref $target eq "HASH" or
+			croak("$opt: hash options must be assigned "
+			      ."to a hash ref, not `$target'");
+
+		    ref $val eq "HASH"
+			or barf("hash specified in config options, "
+				."but `$val' found in config file "
+				." $filename for option $name"
+				.($name ne $names[0]
+				  ? " (synonym for $names[0])" : ""));
+		    %{$target} = %{$val};
+		    last;
+		}
+
+		# check its type
+		elsif ( $type =~ m{^=s} ) {
+		    # nominally a string, but actually allow anything.
+		}
+		elsif ( $type =~ m{^=i} ) {
+		    $val =~ m/^\d+$/ or barf
+			("option `$name' in config file $filename "
+			 ."must be an integer, not `$val'");
+		}
+		elsif ( $type =~ m{^=f} ) {
+		    $val =~ m/^[+-]?(\d+\.?|\d*\.)(\d+)/ or barf
+			("option `$name' in config file $filename "
+			 ."must be a real number, not `$val'");
+		    $val += 0;
+		}
+		elsif ( $type =~ m{!} ) {
+
+		    my ($is_true, $is_false) =
+			($val =~ m/^(?:(y|yes|true|on|1|yang)
+				  |(n|no|false|off|0|yin|))$/xi)
+			    or barf
+			("option `$name' in config file $filename "
+			 ."must be yin or yang, not a suffusion of "
+			 ."yellow");
+
+		    $val = $is_true ? 1 : 0;
+
+		} else {
+		    $val = 1;
+		}
+
+		# process it
+		croak("$opt: simple options must be assigned "
+		      ."to a scalar or code ref, not `$target'")
+		    unless (ref $target and
+			    (ref $target)=~ /CODE|SCALAR|REF/);
+
+		if ( ref $target eq "CODE" ) {
+		    $target->($names[0], $val);
+		} else {
+		    $$target = $val;
+		}
+
+		last;
+	    }
+	}
+    }
+
+    if ( wantarray ) {
+	return @save__;
+    } else {
+	return $conf_obj
+    }
+}
 
 #---------------------------------------------------------------------
 #  helpers for running commands and/or capturing their output
@@ -322,7 +554,8 @@ sub run_err {
 	     ? " (captured)"
 	     : "")) unless ref($_[0]);
     _load_hires;
-    my $start = [gettimeofday()];
+
+    my $start = start_timer();
     my $output;
 
     if (my $pid = do_fork) {
@@ -341,9 +574,9 @@ sub run_err {
             barf "exec failed; $!";
         }
     }
-    my $finish = [gettimeofday()];
-    whisper sprintf("Command completed in %.3fs",
-                    tv_interval($start,$finish));
+    mutter sprintf("command completed in ".show_elapsed($start))
+	if $VERBOSE > 0;
+
     return $?
 
 }
@@ -390,6 +623,26 @@ contribute an implementation.
 sub capture2 {
     die "capture2 not implemented yet"
 }
+
+=item B<start_timer()>
+
+=item B<show_delta()>
+
+=item B<show_elapsed()>
+
+These three little functions are for printing run times in your
+scripts.  Times are displayed for running external programs with
+verbose mode normally, but this will let you display running times for
+your main program easily.
+
+=item B<sci_unit($num, [$unit, $precision])>
+
+Returns a number, scaled using normal scientific prefixes (from atto
+to exa).  Optionally specify a precision which is passed to sprintf()
+(see L<perldoc/sprintf>).  The default is three significant figures.
+
+The scripts assumes an ISO-8559-1 encoding on output, and so will
+print a MU character (\265) to mean micro.
 
 =item B<foo()>
 
@@ -608,5 +861,55 @@ sub show_version {
 sub show_help {
     print &usage;
     exit(0);
+}
+
+my ($start, $last);
+sub start_timer {
+    _load_hires();
+
+    if ( !defined wantarray ) {
+	$last = $start = [gettimeofday()];
+    } else {
+	return [gettimeofday()];
+    }
+}
+
+sub show_elapsed {
+     my $e = tv_interval($_[0]||$start, [gettimeofday()]);
+
+     return sci_unit($e, "s", 3);
+}
+
+sub show_delta {
+    my $now;
+    my $e = tv_interval($_[0]||$last, $now = [gettimeofday()]);
+    $last = $now;
+    return sci_unit($e, "s", 3);
+}
+
+use POSIX qw(ceil);
+
+my %prefixes=(18=>"E",15=>"P",12=>"T",9=>"G",6=>"M",3=>"k",0=>"",
+	      -3=>"m",-6=>"\265",-9=>"n",-12=>"p",-15=>"f",-18=>"a");
+
+sub sci_unit {
+    my $scalar = shift;
+    my $unit = (shift) || "";
+    my $d = (shift) || 4;
+    my $e = 0;
+    #scale value
+    while ( abs($scalar) > 1000 ) { $scalar /= 1000; $e += 3; }
+    while ( $scalar and abs($scalar) < 1 ) {$scalar*=1000;$e-=3}
+
+    # round the number to the right number of digits with sprintf
+    if (exists $prefixes{$e}) {
+	$d -= ceil(log($scalar)/log(10));
+	$d = 0 if $d < 0;
+	my $a = sprintf("%.${d}f", $scalar);
+	return $a.$prefixes{$e}.$unit;
+    } else {
+	return sprintf("%${d}e", $scalar).$unit;
+    }
+
 }
 

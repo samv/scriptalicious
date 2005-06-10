@@ -1,8 +1,12 @@
 # -*- perl -*-
 
-use Test::More tests => 7;
+use Test::More tests => 9;
 
-use_ok( 'Scriptalicious', -progname => "myscript" );
+BEGIN {
+    use_ok( 'Scriptalicious', -progname => "myscript" );
+}
+
+start_timer;
 
 is($PROGNAME, "myscript", "got PROGNAME ok");
 
@@ -28,3 +32,6 @@ my $output = join "", @output;
 
 is($error, 0, "capture_err() - error code");
 is($output, `head -5 $0`, "capture_err() - output");
+
+like(show_delta, qr/^\d+(\.\d+)?[mµ]?s$/, "show_delta");
+like(show_elapsed, qr/^\d+(\.\d+)?[mµ]?s$/, "show_elapsed");

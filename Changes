@@ -1,0 +1,16 @@
+WHATS NEW IN SCRIPTALICIOUS
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In this (1.03) release;
+
+  - YAML config file support.  Do your getopt() and YAML::Load() in
+    one pass!  See getconf() in the man page.
+
+  - New timer utility functions start_timer(), show_delta(),
+    show_elapsed()
+
+COMING SOON TO SCRIPTALICIOUS:
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+  - include the default YAML configuration file in your POD via
+    Pod::Constants!

@@ -1,3 +1,12 @@
+libscriptalicious-perl (1.03) unstable; urgency=low
+
+  * Added start_timer(), show_delta(), show_elapsed()
+  * barf() now does not make your script exit if inside eval{};
+  * Added YAML config file support with Getopt::Long emulation via
+    getconf()
+
+ -- Sam Vilain <sam@vilain.net>  Wed, 12 May 2004 10:46:47 +1200
+
 libscriptalicious-perl (1.02) unstable; urgency=low
 
   * Made barf actually barf :-}
