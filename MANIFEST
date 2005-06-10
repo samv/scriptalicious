@@ -6,7 +6,9 @@ lib/Scriptalicious.pm		Mmm, Scriptalicious
 t/01-mmmdelicious.t
 t/02-script.t
 t/03-yaml.t
+t/04-fork.t
 t/pu.pl
+t/fork.pl
 t/eg.conf
 Build.PL
 debian/changelog

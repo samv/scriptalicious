@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name: Scriptalicious
-version: 1.03
+version: 1.04
 license: perl
 distribution_type: module
 requires: {}
@@ -15,5 +15,5 @@ conflicts: {}
 provides:
   Scriptalicious:
     file: lib/Scriptalicious.pm
-    version: 1.03
+    version: 1.04
 generated_by: Module::Build version 0.20

@@ -6,7 +6,7 @@ use strict;
 use warnings;
 use Carp qw(croak);
 
-our $VERSION = "1.03";
+our $VERSION = "1.04";
 
 =head1 NAME
 
@@ -296,169 +296,6 @@ sub abort { _err_say "aborting: @_"; &show_usage; }
 sub moan { _err_say "warning: @_" }
 sub barf { if($^S){die"@_"}else{ _err_say "ERROR: @_"; exit(1); } }
 
-sub getconf {
-    my $conf_obj;
-    eval 'use YAML'; barf "failed to include YAML; $@" if $@;
-    for my $loc ( "$ENV{HOME}/.${PROGNAME}rc",
-		  "/etc/perl/$PROGNAME.conf",
-		  "/etc/$PROGNAME.conf",
-		  "POD"
-		) {
-	
-	eval {
-	    $conf_obj = getconf_f($loc);
-	};
-	if ( $@ ) {
-	    if ( $@ =~ /^no such config/ ) {
-		next;
-	    } else {
-		barf "error processing config file $loc; $@";
-	    }
-	} else {
-	    last;
-	}
-    }
-    if ( wantarray ) {
-	return @_;
-    } else {
-	return $conf_obj;
-    }
-}
-
-sub getconf_f {
-    my $filename = shift;
-    eval 'use YAML'; barf "failed to include YAML; $@" if $@;
-
-    my $conf_obj;
-
-    if ( $filename eq "POD" ) {
-	eval "use Pod::Constants";
-	barf "no such config file <POD>" if $@;
-
-	my $conf;
-	Pod::Constants::import_from_file
-		($0, "DEFAULT_CONFIG_FILE" => \$conf);
-	$conf or barf "no such config section";
-	eval { $conf_obj = YAML::Load($conf) };
-
-    } else {
-	barf "no such config file $filename" unless -f $filename;
-
-	open CONF, "<$filename"
-	    or barf "failed to open config file $filename; $!";
-	whisper "about to set YAML on config file $filename";
-	eval { $conf_obj = YAML::Load(join "", <CONF>); };
-	close CONF;
-    }
-    barf "YAML exception parsing config file $filename: $@" if $@;
-    whisper "YAML on config file $filename complete";
-
-    return _process_conf($filename, $conf_obj, @_);
-}
-
-sub _process_conf {
-    my $filename = shift;
-    my $conf_obj = shift;
-    my @save__ = @_ if wantarray;
-    while ( my ($opt, $target) = splice @_, 0, 2 ) {
-
-	# wheels, reinvented daily, around the world.
-	my ($opt_list, $type) = ($opt =~ m{^([^!+=:]*)([!+=:].*)?$});
-	$type ||= "";
-	my @names = split /\|/, $opt_list;
-
-	for my $name ( @names ) {
-	    if ( exists $conf_obj->{$name} ) {
-		whisper "found config option `$name'";
-
-		my $val = $conf_obj->{$name};
-
-		# if its a hash or a list, don't beat around the bush,
-		# just assign it.
-		if ( $type =~ m{\@$} ) {
-		    ref $target eq "ARRAY" or
-			croak("$opt: list options must be assigned "
-			      ."to an array ref, not `$target'");
-
-		    ref $val eq "ARRAY"
-			or barf("list specified in config options, "
-				."but `$val' found in config file "
-				." $filename for option $name"
-				.($name ne $names[0]
-				  ? " (synonym for $names[0])" : ""));
-		    @{$target} = @{$val};
-		    last;
-		}
-		elsif ( $type =~ m{\%$} ) {
-		    ref $target eq "HASH" or
-			croak("$opt: hash options must be assigned "
-			      ."to a hash ref, not `$target'");
-
-		    ref $val eq "HASH"
-			or barf("hash specified in config options, "
-				."but `$val' found in config file "
-				." $filename for option $name"
-				.($name ne $names[0]
-				  ? " (synonym for $names[0])" : ""));
-		    %{$target} = %{$val};
-		    last;
-		}
-
-		# check its type
-		elsif ( $type =~ m{^=s} ) {
-		    # nominally a string, but actually allow anything.
-		}
-		elsif ( $type =~ m{^=i} ) {
-		    $val =~ m/^\d+$/ or barf
-			("option `$name' in config file $filename "
-			 ."must be an integer, not `$val'");
-		}
-		elsif ( $type =~ m{^=f} ) {
-		    $val =~ m/^[+-]?(\d+\.?|\d*\.)(\d+)/ or barf
-			("option `$name' in config file $filename "
-			 ."must be a real number, not `$val'");
-		    $val += 0;
-		}
-		elsif ( $type =~ m{!} ) {
-
-		    my ($is_true, $is_false) =
-			($val =~ m/^(?:(y|yes|true|on|1|yang)
-				  |(n|no|false|off|0|yin|))$/xi)
-			    or barf
-			("option `$name' in config file $filename "
-			 ."must be yin or yang, not a suffusion of "
-			 ."yellow");
-
-		    $val = $is_true ? 1 : 0;
-
-		} else {
-		    $val = 1;
-		}
-
-		# process it
-		croak("$opt: simple options must be assigned "
-		      ."to a scalar or code ref, not `$target'")
-		    unless (ref $target and
-			    (ref $target)=~ /CODE|SCALAR|REF/);
-
-		if ( ref $target eq "CODE" ) {
-		    $target->($names[0], $val);
-		} else {
-		    $$target = $val;
-		}
-
-		last;
-	    }
-	}
-    }
-
-    if ( wantarray ) {
-	return @save__;
-    } else {
-	return $conf_obj
-    }
-}
-
 #---------------------------------------------------------------------
 #  helpers for running commands and/or capturing their output
 #---------------------------------------------------------------------
@@ -680,9 +517,10 @@ Sam Vilain, samv@cpan.org
 
 =cut
 
+our $DATA = join "", <DATA>;  close DATA;
 our ($AUTOLOAD, $l);sub AUTOLOAD{croak"No such function $AUTOLOAD"if
-$l;(undef,my($f,$n))=ll();$n+=2;my$es="";while(<DATA>){$es.=$_;}close
-DATA;eval"# line $n \"$f\"\n$es";$@&&die"Error in autoload: $@";
+$l;(undef,my($f,$n))=ll();$n+=2;eval"# line $n \"$f\"\n$DATA";
+$@&&die"Error in autoload: $@";
 $l=1;goto &{$AUTOLOAD};}sub ll{sub{caller()}->();}     "P E A C E";
 __DATA__
 
@@ -911,5 +749,168 @@ sub sci_unit {
 	return sprintf("%${d}e", $scalar).$unit;
     }
 
+}
+
+sub getconf {
+    my $conf_obj;
+    eval 'use YAML'; barf "failed to include YAML; $@" if $@;
+    for my $loc ( "$ENV{HOME}/.${PROGNAME}rc",
+		  "/etc/perl/$PROGNAME.conf",
+		  "/etc/$PROGNAME.conf",
+		  "POD"
+		) {
+	
+	eval {
+	    $conf_obj = getconf_f($loc);
+	};
+	if ( $@ ) {
+	    if ( $@ =~ /^no such config/ ) {
+		next;
+	    } else {
+		barf "error processing config file $loc; $@";
+	    }
+	} else {
+	    last;
+	}
+    }
+    if ( wantarray ) {
+	return @_;
+    } else {
+	return $conf_obj;
+    }
+}
+
+sub getconf_f {
+    my $filename = shift;
+    eval 'use YAML'; barf "failed to include YAML; $@" if $@;
+
+    my $conf_obj;
+
+    if ( $filename eq "POD" ) {
+	eval "use Pod::Constants";
+	barf "no such config file <POD>" if $@;
+
+	my $conf;
+	Pod::Constants::import_from_file
+		($0, "DEFAULT_CONFIG_FILE" => \$conf);
+	$conf or barf "no such config section";
+	eval { $conf_obj = YAML::Load($conf) };
+
+    } else {
+	barf "no such config file $filename" unless -f $filename;
+
+	open CONF, "<$filename"
+	    or barf "failed to open config file $filename; $!";
+	whisper "about to set YAML on config file $filename";
+	eval { $conf_obj = YAML::Load(join "", <CONF>); };
+	close CONF;
+    }
+    barf "YAML exception parsing config file $filename: $@" if $@;
+    whisper "YAML on config file $filename complete";
+
+    return _process_conf($filename, $conf_obj, @_);
+}
+
+sub _process_conf {
+    my $filename = shift;
+    my $conf_obj = shift;
+    my @save__ = @_ if wantarray;
+    while ( my ($opt, $target) = splice @_, 0, 2 ) {
+
+	# wheels, reinvented daily, around the world.
+	my ($opt_list, $type) = ($opt =~ m{^([^!+=:]*)([!+=:].*)?$});
+	$type ||= "";
+	my @names = split /\|/, $opt_list;
+
+	for my $name ( @names ) {
+	    if ( exists $conf_obj->{$name} ) {
+		whisper "found config option `$name'";
+
+		my $val = $conf_obj->{$name};
+
+		# if its a hash or a list, don't beat around the bush,
+		# just assign it.
+		if ( $type =~ m{\@$} ) {
+		    ref $target eq "ARRAY" or
+			croak("$opt: list options must be assigned "
+			      ."to an array ref, not `$target'");
+
+		    ref $val eq "ARRAY"
+			or barf("list specified in config options, "
+				."but `$val' found in config file "
+				." $filename for option $name"
+				.($name ne $names[0]
+				  ? " (synonym for $names[0])" : ""));
+		    @{$target} = @{$val};
+		    last;
+		}
+		elsif ( $type =~ m{\%$} ) {
+		    ref $target eq "HASH" or
+			croak("$opt: hash options must be assigned "
+			      ."to a hash ref, not `$target'");
+
+		    ref $val eq "HASH"
+			or barf("hash specified in config options, "
+				."but `$val' found in config file "
+				." $filename for option $name"
+				.($name ne $names[0]
+				  ? " (synonym for $names[0])" : ""));
+		    %{$target} = %{$val};
+		    last;
+		}
+
+		# check its type
+		elsif ( $type =~ m{^=s} ) {
+		    # nominally a string, but actually allow anything.
+		}
+		elsif ( $type =~ m{^=i} ) {
+		    $val =~ m/^\d+$/ or barf
+			("option `$name' in config file $filename "
+			 ."must be an integer, not `$val'");
+		}
+		elsif ( $type =~ m{^=f} ) {
+		    $val =~ m/^[+-]?(\d+\.?|\d*\.)(\d+)/ or barf
+			("option `$name' in config file $filename "
+			 ."must be a real number, not `$val'");
+		    $val += 0;
+		}
+		elsif ( $type =~ m{!} ) {
+
+		    my ($is_true, $is_false) =
+			($val =~ m/^(?:(y|yes|true|on|1|yang)
+				  |(n|no|false|off|0|yin|))$/xi)
+			    or barf
+			("option `$name' in config file $filename "
+			 ."must be yin or yang, not a suffusion of "
+			 ."yellow");
+
+		    $val = $is_true ? 1 : 0;
+
+		} else {
+		    $val = 1;
+		}
+
+		# process it
+		croak("$opt: simple options must be assigned "
+		      ."to a scalar or code ref, not `$target'")
+		    unless (ref $target and
+			    (ref $target)=~ /CODE|SCALAR|REF/);
+
+		if ( ref $target eq "CODE" ) {
+		    $target->($names[0], $val);
+		} else {
+		    $$target = $val;
+		}
+
+		last;
+	    }
+	}
+    }
+
+    if ( wantarray ) {
+	return @save__;
+    } else {
+	return $conf_obj
+    }
 }
 

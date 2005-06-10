@@ -8,15 +8,15 @@ BEGIN {
 
 getconf_f
     ("t/eg.conf",
-     @opts=( "something|s" => \$foo,
-	     "invertable1|I!" => \$invertable1,
-	     "invertable2|J!" => \$invertable2,
-	     "integer|i=i" => \$integer,
-	     "string|s=s" => \$string,
-	     "list1|1=s@" => \@list1,
-	     "list2|2=s@" => \@list2,
-	     "hash|H=s%" => \%hash,
-	   )
+     ( "something|s" => \$foo,
+       "invertable1|I!" => \$invertable1,
+       "invertable2|J!" => \$invertable2,
+       "integer|i=i" => \$integer,
+       "string|s=s" => \$string,
+       "list1|1=s@" => \@list1,
+       "list2|2=s@" => \@list2,
+       "hash|H=s%" => \%hash,
+     )
     );
 
 is($foo, 1, "plain string");

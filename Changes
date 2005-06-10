@@ -1,7 +1,7 @@
 WHATS NEW IN SCRIPTALICIOUS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-In this (1.03) release;
+In the last non-bugfix (1.03) release;
 
   - YAML config file support.  Do your getopt() and YAML::Load() in
     one pass!  See getconf() in the man page.
