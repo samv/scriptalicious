@@ -1,10 +1,5 @@
 #!/usr/bin/perl
 
-BEGIN { 
-print STDERR "I am pid $$\n";
-#readline STDIN;
-}
-
 use warnings;
 use strict;
 use t::Util;
@@ -24,20 +19,14 @@ like($out, qr/\(child\)/, "Child managed to use the timer");
 
 # test that file descriptors can be fed in lots of different ways
 
-#readline STDIN;
-
 slop $testfile, "Hello, world!";
 my $output = capture( -in => $testfile,
 		      $^X, "-Mlib=lib", "t/loopback.pl");
 like($output, qr/:.*Hello, world!/, "run -in => 'FILENAME'");
 
-#readline STDIN;
-
 $output = capture( -in => sub { print "Hi there\n" },
 		   $^X, "-Mlib=lib", "t/loopback.pl");
 like($output, qr/:.*Hi there/, "run -in => SUB");
-
-#readline STDIN;
 
 open TEST, "<$testfile" or barf "damn! $!";
 $output = capture( -in => \*TEST,
@@ -45,7 +34,6 @@ $output = capture( -in => \*TEST,
 like($output, qr/:.*Hello, world!/, "run -in => GLOB");
 close TEST;
 
-#readline STDIN;
 # output...
 $output = capture( -out => $testfile,
 		   -in  => sub { print "Loop this!\n" },
@@ -54,7 +42,6 @@ is($output, "", "run out => 'FILENAME' (no output from capture)");
 $output = slurp $testfile;
 like($output, qr/:.*Loop this!/, "run -out => 'FILENAME'");
 
-#readline STDIN;
 $output = capture( -out => sub { my $foo = readline STDIN;
 				 slop $testfile, $foo;
 			     },
@@ -64,7 +51,6 @@ is($output, "", "run out => CODE (no output from capture)");
 $output = slurp $testfile;
 like($output, qr/:.*slopslopslop/, "run -out => CODE");
 
-#readline STDIN;
 open TEST, ">$testfile" or barf $!;
 $output = capture( -out => \*TEST,
 		   -in  => sub { print "suckonthis!\n" },
@@ -75,13 +61,10 @@ $output = slurp $testfile;
 like($output, qr/:.*suckonthis!/, "run -out => GLOB");
 
 # explicit file descriptors...
-#readline STDIN;
 slop $testfile, "Burp";
 $output = capture( -in4  => $testfile,
 		   $^X, "-Mlib=lib", "t/loopback.pl", qw(-i 4));
 like($output, qr/Burp/, "-in4 => 'FILENAME'");
-
-#readline STDIN;
 
 slop $testfile, "Burp";
 $output = capture( -in => sub { print "It should be so easy!\n" },
@@ -91,10 +74,7 @@ is($output, "", "-out4 => 'FILENAME' (no output from capture)");
 $output = slurp $testfile;
 like($output, qr/:.*easy!/, "run -out4 => 'FILENAME'");
 
-say "I am pid $$";
-#readline STDIN;
 # last out!
-$Scriptalicious::SLEEP = 15;
 $output = capture( -in5 => sub { print "slurpamunchalot\n" },
 		   -out4  => sub { my $foo = readline STDIN;
 				   slop $testfile, $foo },

@@ -29,8 +29,6 @@ sub __package__ { __PACKAGE__ }
 our ($VERBOSE, $closure);
 $VERBOSE = 0;
 
-our $SLEEP;
-
 #---------------------------------------------------------------------
 #  parse import arguments and export symbols
 #---------------------------------------------------------------------
@@ -199,9 +197,7 @@ sub run_err {
 
     } else {
         barf "Fork failed; $!" if not defined $pid;
-	$SLEEP && sleep $SLEEP;
 	setup_fds(\%fds) if $fd_desc;
-	$SLEEP && sleep $SLEEP;
         if (ref $_[0]) {
             my $code = shift;
             $code->(@_);
@@ -750,41 +746,32 @@ sub prompt_yN {
 
 no strict 'refs';
 
-BEGIN {
-    open SAVEOUT, ">&=17";
-}
-
 # sets up file descriptors for `run' et al.
 sub setup_fds {
     my $fdset = shift;
 
     my (@fds) = sort { $a <=> $b } keys %$fdset;
     $^F = $fds[$#fds] if $fds[$#fds] > 2;
-    { no warnings;
-      print SAVEOUT "Set \$^F to $^F ($fds[$#fds])\n";
-  }
+
+    # there is a slight problem with this - for instance, if the user
+    # supplies a closure that is reading from a file, and that file
+    # happens to be opened on a filehandle that they want to use, then
+    # it will be closed and the code break.  Ho hum.
     for ( 3..$fds[$#fds] ) {
-	print SAVEOUT "duping FD $_\n";
 	open BAM, "<&=$_";
 	if ( fileno(BAM) ) {
-	    print SAVEOUT "closing FD $_\n";
 	    close BAM;
 	} else {
-	    print SAVEOUT "no FD $_ (?)\n";
 	    open BAM, ">&=$_";
 	    if ( fileno(BAM) ) {
-		print SAVEOUT "found it!\n";
 		close BAM;
-	    } else {
-		$SLEEP && sleep $SLEEP;
 	    }
 	}
     }
 
     while ( my ($fnum, $spec) = each %$fdset ) {
 	my ($mode, $where) = @$spec;
-	#open(my $fd, "&=$fnum") or barf "failed to fopen($fnum); $!";
-	my $fd; # = $fds{$fnum};
+	my $fd;
 
 	if ( !ref $where ) {
 	    open($fd, "$mode$where")
@@ -795,7 +782,6 @@ sub setup_fds {
 		or barf "failed to re-open fd $fnum $mode &fd(".fileno($where)."; $!";
 	}
 	elsif ( ref $where eq "CODE" ) {
-	    sleep $SLEEP if $SLEEP;
 	    pipe(\*{"FD${fnum}_R"}, \*{"FD${fnum}_W"});
 
 	    if ( my $pid = fork ) {
@@ -823,15 +809,7 @@ sub setup_fds {
 	    barf "bad spec for FD $fnum";
 	}
 
-
-	#unless ( fileno($fd) == $fnum ) {
-	    #no warnings;
-	    #print SAVEOUT "Closing fnum $fnum\n";
-	    #if ( open(my $gonner, "<&=$fnum") ) {
-		#print SAVEOUT "Found it!\n";
-		#close($gonner);
-	    #}
-	#}
+	# don't use a lex here otherwise it gets auto-closed
 	open (\*{"FD${fnum}"}, "$mode&=$fnum");
 	open \*{"FD${fnum}"}, "$mode&".fileno($fd);
 	fileno(\*{"FD${fnum}"}) == $fnum
@@ -839,10 +817,6 @@ sub setup_fds {
 		barf ("tried to setup on FD $fnum, but got "
 		      .fileno(\*{"FD$fnum"})."(spec: $mode $where)");
 	    };
-	#close $fd;
-	#}
-	#$^F = $fnum if $fnum > $^F;
-	#}
     }
 }
 
