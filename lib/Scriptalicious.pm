@@ -108,7 +108,7 @@ BEGIN {
 		     capture capture_err getopt $VERBOSE $PROGNAME
 		     start_timer show_delta show_elapsed getconf
 		     getconf_f sci_unit prompt_for prompt_passwd
-		     prompt_yn prompt_string prompt_regex prompt_file
+		     prompt_yn
 		    );
 }
 
@@ -283,11 +283,6 @@ and exits with an error code.
 Prints a warning to standard error.  It is preceded with the text
 C<warning:>.  The program does not exit.
 
-=item B<protest "don't know the weather report">
-
-Prints an error message to standard error.  It is preceded with the
-text C<error:>.  The program does not exit.
-
 =item B<barf "hit an iceberg">
 
 Prints a warning to standard error.  It is preceded with the text
@@ -301,7 +296,6 @@ sub whisper { say @_ if $VERBOSE > 1 }
 sub _err_say { print STDERR "$PROGNAME: @_\n" }
 sub abort { _err_say "aborting: @_"; &show_usage; }
 sub moan { _err_say "warning: @_" }
-sub protest { _err_say "error: @_" }
 sub barf { if($^S){die"@_"}else{ _err_say "ERROR: @_"; exit(1); } }
 
 #---------------------------------------------------------------------
@@ -489,12 +483,7 @@ to exa).  Optionally specify a precision which is passed to sprintf()
 The scripts assumes an ISO-8559-1 encoding on output, and so will
 print a MU character (\265) to mean micro.
 
-=item B<prompt_regex($prompt, qr/(.*)/)>
-
-Prompts for something, using the prompt "C<$prompt>", matching the
-entered value (sans trailing linefeed) against the passed regex.
-
-=item B<prompt_sub($prompt, sub { /(.*)/ && $1 })>
+=item B<prompt_regex($prompt, sub { /(.*)/ && $1 })>
 
 Prompts for something, using the prompt "C<$prompt>", feeding the sub
 with the entered value (sans trailing linefeed), to use a default, the
@@ -956,14 +945,13 @@ sub _process_conf {
 }
 
 our $term;
-our $APPEND;
 
 sub term {
     $term ||= do {
 	eval { require Term::ReadLine;
-	       Term::ReadLine->new(__PACKAGE__);
-	   } || (bless { IN => \*STDIN,
-			 OUT => \*STDOUT }, __PACKAGE__);
+	       Term::ReadLine->new(__PACKAGE__)
+	       } || (bless { IN => \*STDIN,
+			     OUT => \*STDOUT }, __PACKAGE__);
     };
 }
 
@@ -994,13 +982,13 @@ sub prompt_passwd {
 
     Term::ReadKey::ReadMode('noecho');
     my $passwd;
-    eval { $passwd = prompt_sub($prompt, @_) };
+    eval { $passwd = prompt_regex($prompt, @_) };
     Term::ReadKey::ReadMode('restore');
     die $@ if $@;
     $passwd;
 }
 
-sub prompt_sub {
+sub prompt_regex {
     my $prompt = shift;
     my $sub = shift;
     my $moan = shift;
@@ -1010,7 +998,7 @@ sub prompt_sub {
 	    if ( defined(my $res = $sub->($_)) ) {
 		return $res;
 	    } else {
-		protest ($moan || "bad response `$_'");
+		moan ($moan || "bad response `$_'");
 	    }
 	} else {
 	    return $_;
@@ -1019,99 +1007,34 @@ sub prompt_sub {
     barf "EOF on input";
 }
 
-sub prompt_regex {
-    my $prompt = shift;
-    my $re = shift;
-    prompt_sub($prompt, sub {
-		   if ( my ($match) = m/$re/ ) {
-		       return (defined($match) ? $match : $_)
-		   } else {
-		       return undef;
-		   }
-	       }, @_);
-}
-
 sub prompt_for {
     my $what = shift;
     my $default = shift;
-    prompt_sub( ("Value for $what"
-		 .($default?" [$default]":"")
-		 .": "),
-		sub { $_ || $default },
-	      ),
-}
-
-sub prompt_file {
-    my $prompt = shift;
-    my $sub = shift || sub { chop; return (-e $_ ? $_ : undef) };
-    my $moan = shift || "File does not exist!";
-    my $term = term;
-    my $attr;
-    if ( $term->can("Attribs") ) {
-	$attr = $term->Attribs;
-	$attr->{completion_function} = \&complete_file;
-	# yes, this is an awful hack.
-	if ( $term =~ /HASH/ and $term->{gnu_readline_p} ) {
-	    $APPEND = "completion_append_character"; # gnu
-	} else {
-	    $APPEND = "completer_terminator_character"; #perl 
-	}
-    }
-    my $file = prompt_sub($prompt, $sub, $moan, @_);
-    if ( $attr ) {
-	$attr->{completion_function} = undef;
-    }
-    return $file;
-}
-
-# ReadLine completion function.  Don't use the built-in one because it
-# sucks arse.
-sub complete_file {
-    my ($text, $line, $start) = @_;
-    (my $dir = $line) =~ s{[^/]*$}{};
-    (my $file = $line) =~ s{.*/}{};
-    ($line =~ m/^(.*\s)/g);
-    $start = (defined($1) ? length($1) : 0);
-    if ( !defined $dir or !length $dir ) {
-	$dir = "./";
-	$start += 2;
-    }
-    $file ||= "";
-    #print STDERR "Completing: DIR='$dir' FILE='$file'\n";
-    if ( -d $dir ) {
-	opendir DIR, $dir or return;
-	my @files = (map { $dir.$_ }
-		     grep { !/^\.\.?$/ && m/^\Q$file\E/ }
-		     readdir DIR);
-	closedir DIR;
-	if ( @files == 1 && -d $files[0] ) {
-	    term->Attribs->{$APPEND} = "/";
-	} else {
-	    term->Attribs->{$APPEND} = " ";
-	}
-	#print STDERR "Completions: ".join(":",@files)."\n";
-	return map { substr $_, $start } @files;
-    }
+    prompt_regex( ("Value for $what"
+		   .($default?" [$default]":"")
+		   .": "),
+		  sub { $_ || $default },
+		),
 }
 
 sub prompt_string {
     my $prompt = shift;
-    prompt_regex($prompt, qr/(.*)/);
+    prompt_regex($prompt, sub { $_ });
 }
 
 sub prompt_Yn {
-    prompt_sub ($_[0], sub {( /^\s*(?: (?:(y.*))? | (n.*))\s*$/ix &&
+    prompt_regex ($_[0], sub {( /^\s*(?: (?:(y.*))? | (n.*))\s*$/ix &&
 				($2 ? 0 : (defined($1) ? 1 : undef)) 
 			      )} );
 }
 sub prompt_yn {
-    prompt_sub ($_[0], sub {( /^\s*(?: (y.*) | (n.*))\s*$/ix &&
+    prompt_regex ($_[0], sub {( /^\s*(?: (y.*) | (n.*))\s*$/ix &&
 				($2 ? 0 : ($1 ? 1 : undef)) 
 			      )},
 		  "please enter `yes', or `no'" );
 }
 sub prompt_yN {
-    prompt_sub ($_[0], sub {( /^\s*(?: (y.*)? | (?:(n.*))? )\s*$/ix &&
+    prompt_regex ($_[0], sub {( /^\s*(?: (y.*)? | (?:(n.*))? )\s*$/ix &&
 				($1 ? 1 : (defined($2) ? 0 : undef)) 
 			      )} );
 }
