@@ -6,11 +6,17 @@ my $ofd = fileno(STDOUT);
 
 getopt("ifd|i=i" => sub {
 	   close STDIN;
-	   open STDIN, "<&$_[1]" or barf "failed to open fd $_[1]; $!";
+	   open STDIN, "<&$_[1]" or do {
+	       moan "failed to open input fd $_[1]; $!";
+	       sleep 60;
+	   };
        },
        "ofd|o=i" => sub {
 	   close STDOUT;
-	   open STDOUT, ">&$_[1]" or barf "failed to open fd $_[1]; $!";
+	   open STDOUT, ">&$_[1]" or do {
+	       moan "failed to open output fd $_[1]; $!";
+	       sleep 60;
+	   };
        },
       );
 

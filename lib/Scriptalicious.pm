@@ -29,6 +29,8 @@ sub __package__ { __PACKAGE__ }
 our ($VERBOSE, $closure);
 $VERBOSE = 0;
 
+our $SLEEP;
+
 #---------------------------------------------------------------------
 #  parse import arguments and export symbols
 #---------------------------------------------------------------------
@@ -90,7 +92,7 @@ sub whisper { say @_ if $VERBOSE > 1 }
 sub _err_say { print STDERR "$PROGNAME: @_\n" }
 sub abort { _err_say "aborting: @_"; &show_usage; }
 sub moan { _err_say "warning: @_" }
-sub barf { if($^S){die"@_"}else{ _err_say "ERROR: @_"; exit(1); } }
+sub barf { if($^S){die @_}else{ _err_say "ERROR: @_"; exit(1); } }
 
 #---------------------------------------------------------------------
 #  helpers for running commands and/or capturing their output
@@ -197,7 +199,9 @@ sub run_err {
 
     } else {
         barf "Fork failed; $!" if not defined $pid;
+	$SLEEP && sleep $SLEEP;
 	setup_fds(\%fds) if $fd_desc;
+	$SLEEP && sleep $SLEEP;
         if (ref $_[0]) {
             my $code = shift;
             $code->(@_);
@@ -746,15 +750,35 @@ sub prompt_yN {
 
 no strict 'refs';
 
+BEGIN {
+    open SAVEOUT, ">&=17";
+}
+
 # sets up file descriptors for `run' et al.
 sub setup_fds {
     my $fdset = shift;
 
     my (@fds) = sort { $a <=> $b } keys %$fdset;
     $^F = $fds[$#fds] if $fds[$#fds] > 2;
+    { no warnings;
+      print SAVEOUT "Set \$^F to $^F ($fds[$#fds])\n";
+  }
     for ( 3..$fds[$#fds] ) {
-	open BAM, ">&=$_";
-	close BAM;
+	print SAVEOUT "duping FD $_\n";
+	open BAM, "<&=$_";
+	if ( fileno(BAM) ) {
+	    print SAVEOUT "closing FD $_\n";
+	    close BAM;
+	} else {
+	    print SAVEOUT "no FD $_ (?)\n";
+	    open BAM, ">&=$_";
+	    if ( fileno(BAM) ) {
+		print SAVEOUT "found it!\n";
+		close BAM;
+	    } else {
+		$SLEEP && sleep $SLEEP;
+	    }
+	}
     }
 
     while ( my ($fnum, $spec) = each %$fdset ) {
@@ -767,10 +791,11 @@ sub setup_fds {
 		or barf "failed to re-open fd $fnum $mode$where; $!";
 	}
 	elsif ( ref $where eq "GLOB" ) {
-	    open($fd, ">&".fileno($where))
-		or barf "failed to re-open fd $fnum $mode GLOB; $!";
+	    open($fd, "$mode&".fileno($where))
+		or barf "failed to re-open fd $fnum $mode &fd(".fileno($where)."; $!";
 	}
 	elsif ( ref $where eq "CODE" ) {
+	    sleep $SLEEP if $SLEEP;
 	    pipe(\*{"FD${fnum}_R"}, \*{"FD${fnum}_W"});
 
 	    if ( my $pid = fork ) {
@@ -798,11 +823,26 @@ sub setup_fds {
 	    barf "bad spec for FD $fnum";
 	}
 
-	open \*{"FD$fnum"}, "$mode&=$fnum";
-	open \*{"FD$fnum"}, "$mode&".fileno($fd);
-	fileno(\*{"FD$fnum"}) == $fnum
-	    or barf "tried to setup on FD $fnum, but got ".fileno(\*{"FD$fnum"});
-	close $fd;
+
+	#unless ( fileno($fd) == $fnum ) {
+	    #no warnings;
+	    #print SAVEOUT "Closing fnum $fnum\n";
+	    #if ( open(my $gonner, "<&=$fnum") ) {
+		#print SAVEOUT "Found it!\n";
+		#close($gonner);
+	    #}
+	#}
+	open (\*{"FD${fnum}"}, "$mode&=$fnum");
+	open \*{"FD${fnum}"}, "$mode&".fileno($fd);
+	fileno(\*{"FD${fnum}"}) == $fnum
+	    or do {
+		barf ("tried to setup on FD $fnum, but got "
+		      .fileno(\*{"FD$fnum"})."(spec: $mode $where)");
+	    };
+	#close $fd;
+	#}
+	#$^F = $fnum if $fnum > $^F;
+	#}
     }
 }
 
