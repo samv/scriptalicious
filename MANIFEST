@@ -1,14 +1,19 @@
 MANIFEST
 README
-Changes
+Changes.pod
 META.yml
 lib/Scriptalicious.pm		Mmm, Scriptalicious
+lib/Scriptalicious.pod		POD's what it's all about, baby!
 t/01-mmmdelicious.t
 t/02-script.t
 t/03-yaml.t
 t/04-fork.t
+t/05-prompt.t
 t/pu.pl
 t/fork.pl
+t/loopback.pl
+t/prompter.pl
+t/Util.pm
 t/eg.conf
 Build.PL
 debian/changelog
