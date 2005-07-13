@@ -1,7 +1,7 @@
 
 =head1 WHATS NEW IN SCRIPTALICIOUS
 
-=head2 VERSION 1.05 (not yet released)
+=head2 VERSION 1.05
 
 =over
 

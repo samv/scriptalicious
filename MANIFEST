@@ -16,7 +16,3 @@ t/prompter.pl
 t/Util.pm
 t/eg.conf
 Build.PL
-debian/changelog
-debian/control
-debian/copyright
-debian/rules

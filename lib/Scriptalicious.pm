@@ -6,7 +6,7 @@ use strict;
 use warnings;
 use Carp qw(croak);
 
-our $VERSION = "1.04_02";
+our $VERSION = "1.05";
 
 use Getopt::Long;
 use base qw(Exporter);

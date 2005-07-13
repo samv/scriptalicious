@@ -1,6 +1,6 @@
---- #YAML:1.0
+---
 name: Scriptalicious
-version: 1.04_02
+version: 1.05
 author: ~
 abstract: ~
 license: perl
@@ -14,5 +14,5 @@ build_requires:
 provides:
   Scriptalicious:
     file: lib/Scriptalicious.pm
-    version: 1.04_02
-generated_by: Module::Build version 0.2606
+    version: 1.05
+generated_by: Module::Build version 0.25
