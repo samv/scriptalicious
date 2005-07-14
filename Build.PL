@@ -6,6 +6,8 @@ use Module::Build;
 Module::Build->new
     ( module_name     => 'Scriptalicious',
       license => 'perl',
+      author     => "Sam Vilain <samv@cpan.org>",
+      abstract_from => "lib/Scriptalicious.pod",
       recommends => {
 		     # gah, buggy Module::Build
 		     #'Pod::Constants' => 0.15,

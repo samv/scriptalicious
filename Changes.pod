@@ -1,6 +1,13 @@
 
 =head1 WHATS NEW IN SCRIPTALICIOUS
 
+=head2 VERSION 1.06
+
+Documentation modifications only; it was quite rightly pointed out
+that the documentation didn't really say what the script is useful
+for.
+
+
 =head2 VERSION 1.05
 
 =over
