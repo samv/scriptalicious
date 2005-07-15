@@ -6,7 +6,7 @@ use strict;
 use warnings;
 use Carp qw(croak);
 
-our $VERSION = "1.06";
+our $VERSION = "1.07";
 
 use Getopt::Long;
 use base qw(Exporter);
@@ -630,7 +630,7 @@ sub _process_conf {
 our $term;
 
 sub term {
-    print "PACKAGE is ".__PACKAGE__."\n";
+    #print "PACKAGE is ".__PACKAGE__."\n";
     $term ||= do {
 	eval { -t STDIN or die;
 	       require Term::ReadLine;
@@ -638,7 +638,7 @@ sub term {
 	       } || (bless { IN => \*STDIN,
 			     OUT => \*STDOUT }, __PACKAGE__);
     };
-    print "TERM is $term\n";
+    #print "TERM is $term\n";
     return $term;
 }
 

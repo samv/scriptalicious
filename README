@@ -49,8 +49,3 @@ module.
   ./Build test
   ./Build install
 
-If you're running Debian, you might like to use:
-
-  dpkg-buildpackage -b -uc -rfakeroot
-  dpkg -i ../libscriptalicious-perl_1.02_all.deb
-

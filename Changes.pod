@@ -1,6 +1,11 @@
 
 =head1 WHATS NEW IN SCRIPTALICIOUS
 
+=head2 VERSION 1.07
+
+Brown paper bag release - the prompting had some debug statements
+left behind.
+
 =head2 VERSION 1.06
 
 Documentation modifications only; it was quite rightly pointed out
