@@ -6,7 +6,7 @@ use strict;
 use warnings;
 use Carp qw(croak);
 
-our $VERSION = "1.07";
+our $VERSION = "1.08";
 
 use Getopt::Long;
 use base qw(Exporter);
@@ -19,7 +19,7 @@ BEGIN {
 		     start_timer show_delta show_elapsed getconf
 		     getconf_f sci_unit prompt_for prompt_passwd
 		     prompt_yn prompt_Yn prompt_yN prompt_string
-		     prompt_int
+		     prompt_int tsay anydump
 		    );
 }
 
@@ -441,7 +441,7 @@ sub show_delta {
 use POSIX qw(ceil);
 
 my %prefixes=(18=>"E",15=>"P",12=>"T",9=>"G",6=>"M",3=>"k",0=>"",
-	      -3=>"m",-6=>"\265",-9=>"n",-12=>"p",-15=>"f",-18=>"a");
+	      -3=>"m",-6=>"u",-9=>"n",-12=>"p",-15=>"f",-18=>"a");
 
 sub sci_unit {
     my $scalar = shift;
@@ -818,6 +818,140 @@ sub setup_fds {
 		      .fileno(\*{"FD$fnum"})."(spec: $mode $where)");
 	    };
     }
+}
+
+sub tsay {
+    my $template = shift;
+    my $data = shift;
+
+    eval {
+	&templater->process($template, $data);
+    };
+
+    if ( $@ ) {
+	moan "Error trying template response using template `$template'; $@";
+	say "template variables:";
+	print anydump $data
+    }
+}
+
+our $provider;
+our $templater;
+
+sub templater {
+    $provider ||= bless { }, "Scriptalicious::DataLoad";
+    our $templater ||= Scriptalicious::Template->new
+	({ INTERPOLATE => 1,
+	   POST_CHOMP => 0,
+	   EVAL_PERL => 1,
+	   TRIM => 0,
+	   RECURSION => 1,
+	   LOAD_TEMPLATES => [ $provider ],
+	 });
+}
+
+sub anydump {
+    my $var = shift;
+    eval {
+	eval "use YAML"; die $@ if $@;
+	local $YAML::UseHeader = 0
+	    unless (!ref $var or ref $var !~ m/^(ARRAY|HASH)$/);
+	local $YAML::UseVersion = 0;
+	return YAML::Dump($var);
+    } || do {
+	eval "use Data::Dumper"; die $@ if $@;
+	local $Data::Dumper::Purity = 1;
+	return Data::Dumper->Dump([$var], ["x"]);
+    }
+}
+
+package Scriptalicious::Template;
+
+our $template_ok;
+our @ISA;
+
+sub new {
+    my $class = shift;
+    eval "use Template";
+    if ( !$@ ) {
+	@ISA = qw(Template);
+	@Scriptalicious::DataLoad::ISA = qw(Template::Provider);
+	$_[0]->{LOAD_TEMPLATES} = Scriptalicious::DataLoad->new();
+	$template_ok = 1;
+	return $class->SUPER::new(@_);
+    } else {
+	Scriptalicious::moan "install Template Toolkit for prettier messages";
+	return bless shift, $class;
+    }
+}
+
+sub process {
+    my $self = shift;
+    if ($template_ok) {
+	no strict 'refs';
+	Scriptalicious::_get_pod_usage();
+	my $template = shift;
+	my $vars = shift;
+	$vars||={};
+	$vars->{$_} = ${"Scriptalicious::$_"}
+	    foreach qw(PROGNAME VERSION VERBOSE NAME SYNOPSIS DESCRIPTION);
+	return $self->SUPER::process($template, $vars, @_);
+    };
+
+    my $template = shift;
+    my $vars = shift;
+    my $provider = eval { $self->{LOAD_TEMPLATES}[0] }
+	|| bless { }, "Scriptalicious::DataLoad";
+
+    my ($data, $rc) = $provider->fetch($template);
+    if ( !$rc ) {
+	Scriptalicious::say "----- Template `$template' -----";
+	print $data;
+    }
+    Scriptalicious::say "------ Template variables ------";
+    print Scriptalicious::anydump $vars;
+    Scriptalicious::say "-------- end of message --------";
+}
+
+package Scriptalicious::DataLoad;
+
+our @ISA;
+
+sub fetch {
+    my ($self, $name, $alias) = @_;
+
+    # get the source file/template
+    my $section = shift;
+
+    my $found = 0;
+    my @data;
+    if ( open(my $script, $0) ) {
+	while ( <$script> ) {
+	    if ( m{^__\Q$name\E__$} .. m{^__(?!\Q$name\E)(\w+)__$} ) {
+		$found++ or next;
+		next if $1;
+		push @data, $_;
+	    }
+	}
+	close $script;
+    }
+    if ( !$found and -e $name ) {
+	$found = 1;
+	if (open TEMPLATE, $name) {
+	    @data = <TEMPLATE>;
+	    close TEMPLATE;
+	} else {
+	    Scriptalicious::moan "failed to open template `$name' for reading; $!";
+	    $found = 0;
+	}
+    }
+
+    if ( @ISA ) {
+	return $self->SUPER::fetch(\(join "", @data));
+    } else {
+	return ((join "", @data), $found ? 0 : 255 );
+    }
+    #return (, ($found ? $ok : $error) );
 }
 
 1;

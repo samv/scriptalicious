@@ -1,6 +1,10 @@
 
 =head1 WHATS NEW IN SCRIPTALICIOUS
 
+=head2 VERSION 1.08
+
+Added new functions 'anydump' and the awesome 'tsay'
+
 =head2 VERSION 1.07
 
 Brown paper bag release - the prompting had some debug statements
