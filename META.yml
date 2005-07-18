@@ -1,6 +1,6 @@
 ---
 name: Scriptalicious
-version: 1.08
+version: 1.09
 author: ~
 abstract: ~
 license: perl
@@ -14,11 +14,11 @@ build_requires:
 provides:
   Scriptalicious:
     file: lib/Scriptalicious.pm
-    version: 1.08
+    version: 1.09
   Scriptalicious::DataLoad:
     file: lib/Scriptalicious.pm
-    version: 1.08
+    version: 1.09
   Scriptalicious::Template:
     file: lib/Scriptalicious.pm
-    version: 1.08
+    version: 1.09
 generated_by: Module::Build version 0.25

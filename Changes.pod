@@ -1,6 +1,12 @@
 
 =head1 WHATS NEW IN SCRIPTALICIOUS
 
+=head2 VERSION 1.09
+
+Another "brown paper bag release".  Fixed a bug in tsay that would
+cause it not to work if there was a true value in $1 already.  Bring
+on Perl 6 and lexical $/.
+
 =head2 VERSION 1.08
 
 Added new functions 'anydump' and the awesome 'tsay'

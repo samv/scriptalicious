@@ -6,7 +6,7 @@ use strict;
 use warnings;
 use Carp qw(croak);
 
-our $VERSION = "1.08";
+our $VERSION = "1.09";
 
 use Getopt::Long;
 use base qw(Exporter);
@@ -926,6 +926,7 @@ sub fetch {
     my $found = 0;
     my @data;
     if ( open(my $script, $0) ) {
+	"" =~ m{()};  # clear $1
 	while ( <$script> ) {
 	    if ( m{^__\Q$name\E__$} .. m{^__(?!\Q$name\E)(\w+)__$} ) {
 		$found++ or next;
@@ -947,6 +948,7 @@ sub fetch {
     }
 
     if ( @ISA ) {
+	#print STDERR "Returning for template `$name':\n", @data,"...\n";
 	return $self->SUPER::fetch(\(join "", @data));
     } else {
 	return ((join "", @data), $found ? 0 : 255 );
