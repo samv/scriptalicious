@@ -825,7 +825,8 @@ sub tsay {
     my $data = shift;
 
     eval {
-	&templater->process($template, $data);
+	&templater->process($template, $data)
+	    or die (&templater->error || "died");
     };
 
     if ( $@ ) {
