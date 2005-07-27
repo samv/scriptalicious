@@ -474,7 +474,7 @@ sub getconf {
 		) {
 	
 	eval {
-	    $conf_obj = getconf_f($loc);
+	    $conf_obj = getconf_f($loc, @_);
 	};
 	if ( $@ ) {
 	    if ( $@ =~ /^no such config/ ) {
@@ -832,7 +832,7 @@ sub tsay {
     if ( $@ ) {
 	moan "Error trying template response using template `$template'; $@";
 	say "template variables:";
-	print anydump $data
+	print anydump($data);
     }
 }
 
@@ -929,7 +929,7 @@ sub fetch {
     if ( open(my $script, $0) ) {
 	"" =~ m{()};  # clear $1
 	while ( <$script> ) {
-	    if ( m{^__\Q$name\E__$} .. m{^__(?!\Q$name\E)(\w+)__$} ) {
+	    if ( m{^__\Q$name\E__$} .. (m{^__(?!\Q$name\E)(\w+)__$}||eof $script) ) {
 		$found++ or next;
 		next if $1;
 		push @data, $_;
