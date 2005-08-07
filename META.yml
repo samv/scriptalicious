@@ -21,4 +21,4 @@ provides:
   Scriptalicious::Template:
     file: lib/Scriptalicious.pm
     version: 1.09
-generated_by: Module::Build version 0.25
+generated_by: Module::Build version 0.2611

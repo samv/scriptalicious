@@ -19,4 +19,5 @@ Module::Build->new
       build_requires => {
 			 'Test::More' => 0,
 			},
+      create_makefile_pl => "passthrough",
     )->create_build_script;

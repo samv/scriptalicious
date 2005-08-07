@@ -252,6 +252,11 @@ and exits with an error code.
 Prints a warning to standard error.  It is preceded with the text
 C<warning:>.  The program does not exit.
 
+=item B<protest "don't know the weather report">
+
+Prints an error message to standard error.  It is preceded with the
+text C<error:>.  The program does not exit.
+
 =item B<barf "hit an iceberg">
 
 Prints a warning to standard error.  It is preceded with the text
@@ -343,7 +348,15 @@ to exa).  Optionally specify a precision which is passed to sprintf()
 From Scriptalicious 1.08, the "u" character is used in place of the
 Greek "mu" due to encoding compatibility issues.
 
-=item B<prompt_regex($prompt, sub { /(.*)/ && $1 })>
+=item B<prompt_regex($prompt, qr/(.*)/)>
+
+Prompts for something, using the prompt "C<$prompt>", matching the
+entered value (sans trailing linefeed) against the passed regex.
+
+Note that this differs from the previous behaviour of prompt_regex,
+which took a sub.
+
+=item B<prompt_sub($prompt, sub { /(.*)/ && $1 })>
 
 Prompts for something, using the prompt "C<$prompt>", feeding the sub
 with the entered value (sans trailing linefeed), to use a default, the
