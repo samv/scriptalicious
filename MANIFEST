@@ -18,7 +18,6 @@ t/prompter.pl
 t/dump.pl
 t/Util.pm
 t/eg.conf
-Build.PL
 Makefile.PL
 t/missing/Pod/Constants.pm
 t/missing/Template.pm

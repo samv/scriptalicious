@@ -1,11 +1,21 @@
 
 =head1 WHATS NEW IN SCRIPTALICIOUS
 
+=head2 VERSION 1.11
+
+=over
+
+=item Drop C<Module::Build> dependency
+
+Go back to C<ExtUtils::MakeMaker>.
+
+=back
+
 =head2 VERSION 1.10
 
 Add prompt_file from an earlier branch.
 
-Fix Build.PL so a compatibility Makefile.PL is generated.
+Fix F<Build.PL> so a compatibility Makefile.PL is generated.
 
 =head2 VERSION 1.09
 
