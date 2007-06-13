@@ -1,7 +1,7 @@
 
 =head1 NAME
 
-Scriptalicious - Delicious scripting goodies
+Scriptalicious - Make scripts more delicious to SysAdmins
 
 =head1 SYNOPSIS
 
@@ -64,15 +64,52 @@ Scriptalicious - Delicious scripting goodies
 
 =head1 DESCRIPTION
 
-This module helps you write scripts, quickly.  Just include the above
-as a template.  Unfortunately, it is not possible to have a `use'
-dependency automatically add structure to your POD yet, so you have to
-include the above manually.  If you want your help message to be
-meaningful, that is.
+This module helps you write scripts that conform to best common
+practices, quickly.  Just include the above as a template, and your
+script will accept all of the options that are included in the manual
+page, as well as summarising them when you use the C<-h> option.
 
-To avoid all that unnecessary explicit importing of symbols, the
-following symbols and functions are exported into the caller's
-namespace:
+(Unfortunately, it is not possible to have a `use' dependency
+automatically add structure to your POD yet, so you have to include
+the above manually.  If you want your help message and Perldoc to be
+meaningful, that is.)
+
+Shortcuts are provided to help you abort or die with various error
+conditions; all of which print the name of the program running (taken
+from C<$0> if not passed).  The motive for this is that "small"
+scripts tend to just get written and forgotten; so, when you have a
+larger system that is built out of lots of these pieces it is
+sometimes guesswork figuring out which script a printed message comes
+from!
+
+For instance, if your program is called with invalid arguments, you
+may simply call C<abort> with a one-line message saying what the
+particular problem was.  When the script is run, it will invite the
+person running the script to try to use the C<--help> option, which
+gives them a summary and in turn invites them to read the Perldoc.
+So, it reads well in the source;
+
+  @ARGV and abort "unexpected arguments: @ARGV";
+  $file or abort "no filename supplied";
+
+And in the output;
+
+  somescript: no filename supplied!
+  Try `somescript --help' for a summary of options
+
+On the other hand, if you call C<barf>, then it is considered to be a
+hard run-time failure, and the invitation to read the C<--help> page
+to get usage not given.  Also, the messages are much tidier than you
+get with C<die> et al.
+
+  open FOO, "<$file" or barf "failed to open $file; $!";
+
+Which will print:
+
+  somescript: failed to open somefile; Permission denied
+
+To avoid unnecessary explicit importing of symbols, the following
+symbols and functions are exported into the caller's namespace:
 
 =over
 
@@ -118,7 +155,8 @@ equivalents).
 Returns the configuration file as Load()'ed by YAML in scalar context,
 or the argument list it was passed in list context.
 
-For example, this script should work As You'd Expect(tm):
+For example, this minimal script (missing the documentation, but hey
+at least it's a start);
 
   getopt getconf
       ( "something|s" => \$foo,
@@ -128,8 +166,14 @@ For example, this script should work As You'd Expect(tm):
         "list|l=s@" => \@list,
         "hash|H=s%" => \%hash, );
 
-Examples of valid command lines for such a script:
+Will accept the following invocation styles;
 
+  foo.pl --help
+  foo.pl --version
+  foo.pl --verbose
+  foo.pl --debug
+  foo.pl --quiet
+  
   foo.pl --something
   foo.pl --invertable
   foo.pl --no-invertable    <=== FORM DIFFERS IN CONFIG FILE
@@ -163,6 +207,11 @@ Equivalent config files:
 
 Note that more complex and possibly arcane usages of Getopt::Long
 features may not work with getconf (patches welcome).
+
+This can be handy for things like database connection strings; all you
+have to do is make an option for them, and then the user of the
+script, or a SysAdmin can set up their own config file for the script
+to automatically set the options.
 
 =item B<getconf_f($filename, @getopt_args)>
 
