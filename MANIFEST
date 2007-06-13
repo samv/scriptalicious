@@ -16,3 +16,4 @@ t/prompter.pl
 t/Util.pm
 t/eg.conf
 Build.PL
+Makefile.PL

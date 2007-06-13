@@ -1,6 +1,12 @@
 
 =head1 WHATS NEW IN SCRIPTALICIOUS
 
+=head2 VERSION 1.10
+
+Add prompt_file from an earlier branch.
+
+Fix Build.PL so a compatibility Makefile.PL is generated.
+
 =head2 VERSION 1.09
 
 Another "brown paper bag release".  Fixed a bug in tsay that would

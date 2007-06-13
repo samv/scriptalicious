@@ -6,7 +6,7 @@ use strict;
 use warnings;
 use Carp qw(croak);
 
-our $VERSION = "1.09";
+our $VERSION = "1.10";
 
 use Getopt::Long;
 use base qw(Exporter);
@@ -19,7 +19,8 @@ BEGIN {
 		     start_timer show_delta show_elapsed getconf
 		     getconf_f sci_unit prompt_for prompt_passwd
 		     prompt_yn prompt_Yn prompt_yN prompt_string
-		     prompt_int tsay anydump
+		     prompt_int tsay anydump prompt_regex prompt_sub
+		     prompt_file
 		    );
 }
 
@@ -90,6 +91,7 @@ sub whisper { say @_ if $VERBOSE > 1 }
 sub _err_say { print STDERR "$PROGNAME: @_\n" }
 sub abort { _err_say "aborting: @_"; &show_usage; }
 sub moan { _err_say "warning: @_" }
+sub protest { _err_say "error: @_" }
 sub barf { if($^S){die @_}else{ _err_say "ERROR: @_"; exit(1); } }
 
 #---------------------------------------------------------------------
@@ -230,12 +232,12 @@ sub capture2 {
     die "capture2 not implemented yet"
 }
 
-our $DATA = join "", <DATA>;  close DATA;
-our ($AUTOLOAD, $l);sub AUTOLOAD{croak"No such function $AUTOLOAD"if
-$l;(undef,my($f,$n))=ll();$n+=1;eval"package ".__PACKAGE__.";\n"
-."# line $n \"$f\"\n$DATA"; $@&&die"Error in autoload: $@";
-$l=1;goto &{$AUTOLOAD};}sub ll{sub{caller()}->();}     "P E A C E";
-__DATA__
+#our $DATA = join "", <DATA>;  close DATA;
+#our ($AUTOLOAD, $l);sub AUTOLOAD{croak"No such function $AUTOLOAD"if
+#$l;(undef,my($f,$n))=ll();$n+=1;eval"package ".__PACKAGE__.";\n"
+#."# line $n \"$f\"\n$DATA"; $@&&die"Error in autoload: $@";
+#$l=1;goto &{$AUTOLOAD};}sub ll{sub{caller()}->();}     "P E A C E";
+#__DATA__
 
 our ($NAME, $SHORT_DESC, $SYNOPSIS, $DESCRIPTION, @options);
 
@@ -474,7 +476,7 @@ sub getconf {
 		) {
 	
 	eval {
-	    $conf_obj = getconf_f($loc);
+	    $conf_obj = getconf_f($loc, @_);
 	};
 	if ( $@ ) {
 	    if ( $@ =~ /^no such config/ ) {
@@ -628,6 +630,7 @@ sub _process_conf {
 }
 
 our $term;
+our $APPEND;
 
 sub term {
     #print "PACKAGE is ".__PACKAGE__."\n";
@@ -669,13 +672,13 @@ sub prompt_passwd {
 
     Term::ReadKey::ReadMode('noecho');
     my $passwd;
-    eval { $passwd = prompt_regex($prompt, @_) };
+    eval { $passwd = prompt_sub($prompt, @_) };
     Term::ReadKey::ReadMode('restore');
     die $@ if $@;
     $passwd;
 }
 
-sub prompt_regex {
+sub prompt_sub {
     my $prompt = shift;
     # I'm a whitespace nazi! :)
     $prompt =~ s{$}{ } unless $prompt =~ /\s$/;
@@ -686,13 +689,26 @@ sub prompt_regex {
 	    if ( defined(my $res = $sub->($_)) ) {
 		return $res;
 	    } else {
-		moan ($moan || "bad response `$_'");
+		protest ($moan || "bad response `$_'");
 	    }
 	} else {
 	    return $_;
 	}
     }
     barf "EOF on input";
+}
+
+sub prompt_regex {
+    my $prompt = shift;
+    my $re = shift;
+    prompt_sub($prompt, (ref $re eq "CODE" ?
+			   $re : sub {
+		   if ( my ($match) = m/$re/ ) {
+		       return (defined($match) ? $match : $_)
+		   } else {
+		       return undef;
+		   }
+	       }), @_);
 }
 
 sub prompt_for {
@@ -710,27 +726,27 @@ sub prompt_for {
 sub prompt_string {
     my $prompt = shift;
     my $default = shift;
-    prompt_regex($prompt.(defined($default)?" [$default]":""),
+    prompt_sub($prompt.(defined($default)?" [$default]":""),
 		 sub { $_ || $default });
 }
 
 sub prompt_int {
     my $prompt = shift;
     my $default = shift;
-    prompt_regex($prompt.(defined($default)?" [$default]":""),
+    prompt_sub($prompt.(defined($default)?" [$default]":""),
 		 sub { my($i) = /^(\d+)$/;
 		       defined ($i) ? $i : (length($_)?undef:$default) });
 }
 
 sub prompt_nY { prompt_Yn(@_) }
 sub prompt_Yn {
-    prompt_regex ($_[0]." [Yn]",
+    prompt_sub ($_[0]." [Yn]",
 		  sub {( /^\s*(?: (?:(y.*))? | (n.*))\s*$/ix &&
 			 ($2 ? 0 : (defined($1) ? 1 : undef)) 
 		       )} );
 }
 sub prompt_yn {
-    prompt_regex ($_[0]." [yn]",
+    prompt_sub ($_[0]." [yn]",
 		  sub {( /^\s*(?: (y.*) | (n.*))\s*$/ix &&
 			 ($2 ? 0 : ($1 ? 1 : undef)) 
 		       )},
@@ -738,10 +754,69 @@ sub prompt_yn {
 }
 sub prompt_Ny { prompt_yN(@_) }
 sub prompt_yN {
-    prompt_regex ($_[0]." [Ny]",
+    prompt_sub ($_[0]." [Ny]",
 		  sub {( /^\s*(?: (y.*)? | (?:(n.*))? )\s*$/ix &&
 			 ($1 ? 1 : (defined($2) ? 0 : undef)) 
 		       )} );
+}
+
+sub prompt_file {
+    my $prompt = shift;
+    my $sub = shift || sub {
+	s{[\n/ ]$}{};
+	return (-e $_ ? $_ : die "File `$_' does not exist!")
+    };
+    my $moan = shift || "Specified file does not exist!";
+    my $term = term;
+    my $attr;
+    if ( $term->can("Attribs") ) {
+	$attr = $term->Attribs;
+	$attr->{completion_function} = \&complete_file;
+	# yes, this is an awful hack.
+	if ( $term =~ /Stub/ ) {
+	    $APPEND = undef;
+	}
+	elsif ( $term =~ /HASH/ and $term->{gnu_readline_p} ) {
+	    $APPEND = "completion_append_character"; # gnu
+	} else {
+	    $APPEND = "completer_terminator_character"; #perl 
+	}
+    }
+    my $file = prompt_sub($prompt, $sub, $moan, @_);
+    if ( $attr ) {
+	$attr->{completion_function} = undef;
+    }
+    return $file;
+}
+
+# ReadLine completion function.  Don't use the built-in one because it
+# sucks arse.
+sub complete_file {
+    my ($text, $line, $start) = @_;
+    (my $dir = $line) =~ s{[^/]*$}{};
+    (my $file = $line) =~ s{.*/}{};
+    ($line =~ m/^(.*\s)/g);
+    $start = (defined($1) ? length($1) : 0);
+    if ( !defined $dir or !length $dir ) {
+	$dir = "./";
+	$start += 2;
+    }
+    $file ||= "";
+    #print STDERR "Completing: DIR='$dir' FILE='$file'\n";
+    if ( -d $dir ) {
+	opendir DIR, $dir or return;
+	my @files = (map { $dir.$_ }
+		     grep { !/^\.\.?$/ && m/^\Q$file\E/ }
+ 		     readdir DIR);
+	closedir DIR;
+	if ( @files == 1 && -d $files[0] ) {
+	    term->Attribs->{$APPEND} = "/";
+	} else {
+	    term->Attribs->{$APPEND} = " ";
+	}
+	#print STDERR "Completions: ".join(":",@files)."\n";
+	return map { substr $_, $start } @files;
+    }
 }
 
 no strict 'refs';
@@ -825,13 +900,14 @@ sub tsay {
     my $data = shift;
 
     eval {
-	&templater->process($template, $data);
+	&templater->process($template, $data)
+	    or die (&templater->error || "died");
     };
 
     if ( $@ ) {
 	moan "Error trying template response using template `$template'; $@";
 	say "template variables:";
-	print anydump $data
+	print anydump($data);
     }
 }
 
@@ -928,7 +1004,7 @@ sub fetch {
     if ( open(my $script, $0) ) {
 	"" =~ m{()};  # clear $1
 	while ( <$script> ) {
-	    if ( m{^__\Q$name\E__$} .. m{^__(?!\Q$name\E)(\w+)__$} ) {
+	    if ( m{^__\Q$name\E__$} .. (m{^__(?!\Q$name\E)(\w+)__$}||eof $script) ) {
 		$found++ or next;
 		next if $1;
 		push @data, $_;
