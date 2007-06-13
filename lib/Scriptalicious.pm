@@ -6,110 +6,25 @@ use strict;
 use warnings;
 use Carp qw(croak);
 
-our $VERSION = "1.04";
-
-=head1 NAME
-
-Scriptalicious - Delicious scripting goodies
-
-=head1 SYNOPSIS
-
- use Scriptalicious
-      -progname => "pu";
- 
- our $VERSION = "1.00";
- 
- my $url = ".";
- getopt getconf("u|url" => \$url);
- 
- run("echo", "doing something with $url");
- my $output = capture("svn", "info", $url);
- 
- __END__
- 
- =head1 NAME
- 
- pu - an uncarved block of wood
- 
- =head1 SYNOPSIS
- 
- pu [options] arguments
- 
- =head1 DESCRIPTION
- 
- This script's function is to be a blank example that many
- great and simple scripts may be built upon.
- 
- Remember, you cannot carve rotten wood.
- 
- =head1 COMMAND LINE OPTIONS
- 
- =over
- 
- =item B<-h, --help>
- 
- Display a program usage screen and exit.
- 
- =item B<-V, --version>
- 
- Display program version and exit.
- 
- =item B<-v, --verbose>
- 
- Verbose command execution, displaying things like the
- commands run, their output, etc.
- 
- =item B<-q, --quiet>
- 
- Suppress all normal program output; only display errors and
- warnings.
- 
- =item B<-d, --debug>
- 
- Display output to help someone debug this script, not the
- process going on.
- 
- =back
-
-=head1 DESCRIPTION
-
-This module helps you write scripts, quickly.  Just include the above
-as a template.  Unfortunately, it is not possible to have a `use'
-dependency automatically add structure to your POD yet, so you have to
-include the above manually.  If you want your help message to be
-meaningful, that is.
-
-To avoid all that unnecessary explicit importing of symbols, the
-following symbols and functions are exported into the caller's
-namespace:
-
-=over
-
-=item C<$VERBOSE>
-
-Set to 0 by default, and 1 if C<-v> or C<--verbose> was found during
-the call to C<getopt()>.  Extra C<-v>'s or C<--debug> will push this
-variable higher.  If C<-q> or <--quiet> is specified, this will be
-less than one.
-
-=item C<$PROGNAME>
-
-It is recommended that you only ever read this variable, and pass it
-in via the import.  This is not automatically extracted from the POD
-for performance reasons.
-
-=cut
+our $VERSION = "1.05";
 
 use Getopt::Long;
 use base qw(Exporter);
 
 BEGIN {
+    # export groups, phtoey!
+
     our @EXPORT = qw(say mutter whisper abort moan barf run run_err
 		     capture capture_err getopt $VERBOSE $PROGNAME
 		     start_timer show_delta show_elapsed getconf
-		     getconf_f sci_unit);
+		     getconf_f sci_unit prompt_for prompt_passwd
+		     prompt_yn prompt_Yn prompt_yN prompt_string
+		     prompt_int
+		    );
 }
 
+# define this in subclasses where appropriate
+sub __package__ { __PACKAGE__ }
 
 our ($VERBOSE, $closure);
 $VERBOSE = 0;
@@ -137,18 +52,8 @@ sub import {
     goto &Exporter::import;
 }
 
-# automatically grok the program name if called for
+# automatically guess the program name if called for
 (our $PROGNAME = $0) =~ s{.*/}{} unless $PROGNAME;
-
-=item B<getopt(@getopt_args)>
-
-Fetch arguments via C<Getopt::Long::GetOptions>.  The C<bundling>
-option is enabled by default - which differs from the standard
-configuration of B<Getopt::Long>.  To alter the configuration, simply
-call C<Getopt::Long::config>.  See L<Getopt::Long> for more
-information.
-
-=cut
 
 BEGIN {
     Getopt::Long::config("bundling", "pass_through");
@@ -179,122 +84,13 @@ sub getopt {
 	if $#ARGV >= 0 and $ARGV[0] =~ m/^-/;
 }
 
-=item B<getconf(@getopt_args)>
-
-Fetches configuration, takes arguments in the same form as
-B<getopt()>..
-
-The configuration file is expected to be in F<~/.PROGNAMErc>,
-F</etc/perl/PROGNAME.conf>, or F</etc/PROGNAME.conf>.  Only the first
-found file is read, and unknown options are ignored for the time
-being.
-
-The file is expected to be in YAML format, with the top entity being a
-hash, and the keys of the hash being the same as specifying options on
-the command line.  Using YAML as a format allows some simplificiations
-to getopt-style processing - C<=s%> and C<=s@> style options are
-expected to be in a real hash or list format in the config file, and
-boolean options must be set to C<true> or C<false> (or some common
-equivalents).
-
-Returns the configuration file as Load()'ed by YAML in scalar context,
-or the argument list it was passed in list context.
-
-For example, this script should work As You'd Expect(tm):
-
-  getopt getconf
-      ( "something|s" => \$foo,
-        "invertable|I!" => \$invertable,
-        "integer|i=i" => \$bar,
-        "string|s=s" => \$cheese,
-        "list|l=s@" => \@list,
-        "hash|H=s%" => \%hash, );
-
-Examples of valid command lines for such a script:
-
-  foo.pl --something
-  foo.pl --invertable
-  foo.pl --no-invertable    <=== FORM DIFFERS IN CONFIG FILE
-  foo.pl --integer=7
-  foo.pl --string=anything
-  foo.pl --list one --list two --list three
-  foo.pl --hash foo=bar --hash baz=cheese
-
-Equivalent config files:
-
-  something: 1
-
-  invertable: on
-
-  invertable: off
-
-  integer: 7
-
-  string: anything
-
-  list:
-    - one
-    - two
-    - three
-
-  list: [ one, two, three ]
-
-  hash:
-    foo: bar
-    baz: cheese
-
-Note that more complex and possibly arcane usages of Getopt::Long
-features may not work with getconf (patches welcome).
-
-=item B<getconf_f($filename, @getopt_args)>
-
-As B<getconf()>, but specify a filename.
-
-=cut
-
-=item B<say "something">
-
-Prints a message to standard output, unless quiet mode (C<-q> or
-C<--quiet>) was specified.  For normal program messages.
-
-=item B<mutter "progress">
-
-Prints a message to standard output, if verbose mode (C<-v>) or debug
-mode (C<-d>) is enabled (ie, if C<$VERBOSE E<gt> 0>).  For messages
-designed to help a I<user of the script> to see more information about
-what is going on.
-
-=item B<whisper "detail">
-
-Prints a message to standard output, if debug mode (C<-d>) is enabled
-or multiple verbose options were passed (ie, if C<$VERBOSE E<gt> 1>).
-For messages designed to help a I<person debugging the script> to see
-more information about what is going on internally to the script.
-
-=item B<abort "won't go to sea in a storm">
-
-Prints a short program usage message (extracted from the POD synopsis)
-and exits with an error code.
-
-=item B<moan "weather is miserable">
-
-Prints a warning to standard error.  It is preceded with the text
-C<warning:>.  The program does not exit.
-
-=item B<barf "hit an iceberg">
-
-Prints a warning to standard error.  It is preceded with the text
-C<warning:>.  The program does not exit.
-
-=cut
-
 sub say { print "$PROGNAME: @_\n" unless $VERBOSE < 0 }
 sub mutter { say @_ if $VERBOSE }
 sub whisper { say @_ if $VERBOSE > 1 }
 sub _err_say { print STDERR "$PROGNAME: @_\n" }
 sub abort { _err_say "aborting: @_"; &show_usage; }
 sub moan { _err_say "warning: @_" }
-sub barf { if($^S){die"@_"}else{ _err_say "ERROR: @_"; exit(1); } }
+sub barf { if($^S){die @_}else{ _err_say "ERROR: @_"; exit(1); } }
 
 #---------------------------------------------------------------------
 #  helpers for running commands and/or capturing their output
@@ -312,16 +108,10 @@ sub shellquote {
     }; $_ } map { $_ } @_);
 }
 
-=item B<run("command", "arg1", "arg2")>
-
-Runs a command or closure, barf's with a relevant error message if
-there is a problem.  Program output is suppressed unless running in
-verbose mode.
-
-=cut
-
+our @last_cmd;
 sub run {
     &run_err(@_);
+    @_ = @last_cmd;
     my $start = $#output - 10;
     chomp($output[$#output]) if @output;
     $start = 0 if $start < 0;
@@ -369,13 +159,6 @@ sub _waitpid {
     }
 }
 
-=item B<run_err("command", "arg2", "arg1")>
-
-Same as run, but returns the error code rather than assuming that the
-command will successfully complete.  Again, output it suppressed.
-
-=cut
-
 sub _load_hires {
     return if defined &gettimeofday;
     eval "use Time::HiRes qw(gettimeofday tv_interval)";
@@ -386,10 +169,22 @@ sub _load_hires {
 }
 
 sub run_err {
-    mutter("running `".shellquote(@_)."'"
+    my %fds;
+    my $fd_desc = "";
+    while ( $_[0] and !ref $_[0] and $_[0]=~/^-(in|out|rw)(\d+)?$/ ) {
+	shift;
+	my $mode = ($1 eq "in" ? "<" : ($1 eq "out" ? ">" : "+<") );
+	my $fd = $2 || ($1 eq "out" ? 1 : 0);
+	$fds{"$fd"} = [ $mode, shift ];
+	$fd_desc .= ($fd_desc ? ", " : "") . "fd$fd=$mode$fds{$fd}";
+    }
+    @last_cmd = @_;
+    mutter("running `".shellquote(@last_cmd)."'"
 	   .($next_cmd_capture
 	     ? " (captured)"
-	     : "")) unless ref($_[0]);
+	     : "")
+	   .($fd_desc?"($fd_desc)":"")
+	  ) unless ref($_[0]);
     _load_hires;
 
     my $start = start_timer();
@@ -402,6 +197,7 @@ sub run_err {
 
     } else {
         barf "Fork failed; $!" if not defined $pid;
+	setup_fds(\%fds) if $fd_desc;
         if (ref $_[0]) {
             my $code = shift;
             $code->(@_);
@@ -418,29 +214,11 @@ sub run_err {
 
 }
 
-=item B<capture("command", "1gra", "2gra")>
-
-runs a command, capturing its output, barfs if there is a problem.
-Returns the output of the command as a list.
-
-=cut
-
 sub capture {
     local($next_cmd_capture) = 1;
     run(@_);
-    return @output;
+    return (wantarray ? @output : join("", @output));
 }
-
-=item B<capture_err("command", "foo")>
-
-Works as B<capture>, but the first returned item is the error code of
-the command ($?) rather than the first line of its output.
-
-Usage:
-
-   my ($rc, @output) = capture_err("somecommand", @args);
-
-=cut
 
 sub capture_err {
     local($next_cmd_capture) = 1;
@@ -448,79 +226,14 @@ sub capture_err {
     return ($rv, @output)
 }
 
-=item B<capture2("command", "--opt")>
-
-Like B<capture>, but returns two strings - one the standard output
-stream of the program, and one the standard error.  Normally the two
-streams are combined.  Currently unimplemented - contact the author to
-contribute an implementation.
-
-=cut
-
 sub capture2 {
     die "capture2 not implemented yet"
 }
 
-=item B<start_timer()>
-
-=item B<show_delta()>
-
-=item B<show_elapsed()>
-
-These three little functions are for printing run times in your
-scripts.  Times are displayed for running external programs with
-verbose mode normally, but this will let you display running times for
-your main program easily.
-
-=item B<sci_unit($num, [$unit, $precision])>
-
-Returns a number, scaled using normal scientific prefixes (from atto
-to exa).  Optionally specify a precision which is passed to sprintf()
-(see L<perldoc/sprintf>).  The default is three significant figures.
-
-The scripts assumes an ISO-8559-1 encoding on output, and so will
-print a MU character (\265) to mean micro.
-
-=item B<foo()>
-
-If you've got a short little Perl function that implements something
-useful for people writing Shell scripts in Perl, then please feel free
-to contribute it.  And if it really is scriptalicious, you can bet
-your momma on it getting into this module!
-
-=back
-
-=head1 SEE ALSO
-
-Simon Cozen's L<Getopt::Auto> module does a very similar thing to this
-module, in a quite different way.  However, it is missing C<say>,
-C<run>, etc.  So you'll need to use some other module for those.  But
-it does have some other features you might like and is probably
-engineered better.
-
-There's a template script at L<Getopt::Long/Documentation and help
-texts> that contains a script template that demonstrates what is
-necessary to get the basic man page / usage things working with the
-traditional L<Getopt::Long> and L<Pod::Usage> combination.
-
-L<Getopt::Plus> is a swiss army chainsaw of Getopt::* style modules,
-contrasting to this module's approach of elegant simplicity (quiet in
-the cheap seats!).
-
-If you have solved this problem in a new and interesting way, or even
-rehashed it in an old, boring and inelegant way and want your module
-to be listed here, please contact the
-
-=head1 AUTHOR
-
-Sam Vilain, samv@cpan.org
-
-=cut
-
 our $DATA = join "", <DATA>;  close DATA;
 our ($AUTOLOAD, $l);sub AUTOLOAD{croak"No such function $AUTOLOAD"if
-$l;(undef,my($f,$n))=ll();$n+=2;eval"# line $n \"$f\"\n$DATA";
-$@&&die"Error in autoload: $@";
+$l;(undef,my($f,$n))=ll();$n+=1;eval"package ".__PACKAGE__.";\n"
+."# line $n \"$f\"\n$DATA"; $@&&die"Error in autoload: $@";
 $l=1;goto &{$AUTOLOAD};}sub ll{sub{caller()}->();}     "P E A C E";
 __DATA__
 
@@ -792,7 +505,7 @@ sub getconf_f {
 
 	my $conf;
 	Pod::Constants::import_from_file
-		($0, "DEFAULT_CONFIG_FILE" => \$conf);
+		($0, "DEFAULT CONFIG FILE" => \$conf);
 	$conf or barf "no such config section";
 	eval { $conf_obj = YAML::Load($conf) };
 
@@ -913,4 +626,199 @@ sub _process_conf {
 	return $conf_obj
     }
 }
+
+our $term;
+
+sub term {
+    print "PACKAGE is ".__PACKAGE__."\n";
+    $term ||= do {
+	eval { -t STDIN or die;
+	       require Term::ReadLine;
+	       Term::ReadLine->new(__PACKAGE__)
+	       } || (bless { IN => \*STDIN,
+			     OUT => \*STDOUT }, __PACKAGE__);
+    };
+    print "TERM is $term\n";
+    return $term;
+}
+
+sub OUT { $_[0]->{OUT} }
+sub IN  { $_[0]->{IN} }
+
+sub readline {
+    my $self = shift;
+    my $prompt = shift;
+
+    my $OUT = $self->OUT;
+    my $IN = $self->IN;
+
+    print $OUT "$prompt? ";
+    my $res = readline $IN;
+    chomp($res);
+
+    return $res;
+}
+
+sub prompt_passwd {
+    my $prompt = shift || "Password: ";
+
+    eval {
+	require Term::ReadKey;
+    };
+    barf "cannot load Term::ReadKey" if $@;
+
+    Term::ReadKey::ReadMode('noecho');
+    my $passwd;
+    eval { $passwd = prompt_regex($prompt, @_) };
+    Term::ReadKey::ReadMode('restore');
+    die $@ if $@;
+    $passwd;
+}
+
+sub prompt_regex {
+    my $prompt = shift;
+    # I'm a whitespace nazi! :)
+    $prompt =~ s{$}{ } unless $prompt =~ /\s$/;
+    my $sub = shift;
+    my $moan = shift;
+    while ( defined ($_ = term->readline($prompt)) ) {
+	if ( $sub ) {
+	    if ( defined(my $res = $sub->($_)) ) {
+		return $res;
+	    } else {
+		moan ($moan || "bad response `$_'");
+	    }
+	} else {
+	    return $_;
+	}
+    }
+    barf "EOF on input";
+}
+
+sub prompt_for {
+    my $type;
+    if (@_ > 1 and $_[0]=~/^-(.*)/) { $type = $1; shift; };
+    $type ||= "string";
+    my $ref = __package__->can("prompt_$type")
+	or croak "don't know how to prompt for $type";
+
+    my $what = shift;
+    my $default = shift;
+    $ref->( "Value for $what:", $default, ),
+}
+
+sub prompt_string {
+    my $prompt = shift;
+    my $default = shift;
+    prompt_regex($prompt.(defined($default)?" [$default]":""),
+		 sub { $_ || $default });
+}
+
+sub prompt_int {
+    my $prompt = shift;
+    my $default = shift;
+    prompt_regex($prompt.(defined($default)?" [$default]":""),
+		 sub { my($i) = /^(\d+)$/;
+		       defined ($i) ? $i : (length($_)?undef:$default) });
+}
+
+sub prompt_nY { prompt_Yn(@_) }
+sub prompt_Yn {
+    prompt_regex ($_[0]." [Yn]",
+		  sub {( /^\s*(?: (?:(y.*))? | (n.*))\s*$/ix &&
+			 ($2 ? 0 : (defined($1) ? 1 : undef)) 
+		       )} );
+}
+sub prompt_yn {
+    prompt_regex ($_[0]." [yn]",
+		  sub {( /^\s*(?: (y.*) | (n.*))\s*$/ix &&
+			 ($2 ? 0 : ($1 ? 1 : undef)) 
+		       )},
+		  "please enter `yes', or `no'" );
+}
+sub prompt_Ny { prompt_yN(@_) }
+sub prompt_yN {
+    prompt_regex ($_[0]." [Ny]",
+		  sub {( /^\s*(?: (y.*)? | (?:(n.*))? )\s*$/ix &&
+			 ($1 ? 1 : (defined($2) ? 0 : undef)) 
+		       )} );
+}
+
+no strict 'refs';
+
+# sets up file descriptors for `run' et al.
+sub setup_fds {
+    my $fdset = shift;
+
+    my (@fds) = sort { $a <=> $b } keys %$fdset;
+    $^F = $fds[$#fds] if $fds[$#fds] > 2;
+
+    # there is a slight problem with this - for instance, if the user
+    # supplies a closure that is reading from a file, and that file
+    # happens to be opened on a filehandle that they want to use, then
+    # it will be closed and the code break.  Ho hum.
+    for ( 3..$fds[$#fds] ) {
+	open BAM, "<&=$_";
+	if ( fileno(BAM) ) {
+	    close BAM;
+	} else {
+	    open BAM, ">&=$_";
+	    if ( fileno(BAM) ) {
+		close BAM;
+	    }
+	}
+    }
+
+    while ( my ($fnum, $spec) = each %$fdset ) {
+	my ($mode, $where) = @$spec;
+	my $fd;
+
+	if ( !ref $where ) {
+	    open($fd, "$mode$where")
+		or barf "failed to re-open fd $fnum $mode$where; $!";
+	}
+	elsif ( ref $where eq "GLOB" ) {
+	    open($fd, "$mode&".fileno($where))
+		or barf "failed to re-open fd $fnum $mode &fd(".fileno($where)."; $!";
+	}
+	elsif ( ref $where eq "CODE" ) {
+	    pipe(\*{"FD${fnum}_R"}, \*{"FD${fnum}_W"});
+
+	    if ( my $pid = fork ) {
+		my $rw = ($mode eq ">" ? "W" : "R");
+		open($fd, "$mode&FD${fnum}_$rw")
+		    or barf "failed to re-open fd $fnum $mode CODE; $!";
+	    } elsif ( !defined $pid ) {
+		barf "fork failed; $!";
+	    } else {
+		if ( $mode eq "<" ) {
+		    close STDOUT;
+		    open STDOUT, ">&FD${fnum}_W";
+		    select STDOUT;
+		    $| = 1;
+		}
+		else {
+		    close STDIN;
+		    open STDIN, "<&FD${fnum}_R";
+		}
+		$where->();
+		exit(0);
+	    }
+	}
+	else {
+	    barf "bad spec for FD $fnum";
+	}
+
+	# don't use a lex here otherwise it gets auto-closed
+	open (\*{"FD${fnum}"}, "$mode&=$fnum");
+	open \*{"FD${fnum}"}, "$mode&".fileno($fd);
+	fileno(\*{"FD${fnum}"}) == $fnum
+	    or do {
+		barf ("tried to setup on FD $fnum, but got "
+		      .fileno(\*{"FD$fnum"})."(spec: $mode $where)");
+	    };
+    }
+}
+
+1;
 
