@@ -15,6 +15,8 @@ Go back to C<ExtUtils::MakeMaker>.
 
 =item Make C<getopt()> optional for getting verbosity right
 
+=item Functions don't clobber $_ (Gerard Goosen)
+
 =back
 
 =head2 VERSION 1.10

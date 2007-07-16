@@ -169,8 +169,8 @@ sub _waitpid {
 	($VERBOSE >= $SHOW_CMD_VERBOSE or $next_cmd_no_hide)) {
         waitpid($pid, 0);
     } else {
-        while (<CHILD>) {
-            push @output, $_;
+        while (my $line = <CHILD>) {
+            push @output, $line;
         }
         close CHILD;
     }
@@ -1025,6 +1025,7 @@ sub fetch {
     my @data;
     if ( open(my $script, $0) ) {
 	"" =~ m{()};  # clear $1
+	local(*_);
 	while ( <$script> ) {
 	    if ( m{^__\Q$name\E__$} .. (m{^__(?!\Q$name\E)(\w+)__$}||eof $script) ) {
 		$found++ or next;

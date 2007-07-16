@@ -1,5 +1,7 @@
 #!/usr/bin/perl -w
 
+for (qw|readonly|) {
+
 use strict;
 
 use Test::More tests => 6;
@@ -25,3 +27,5 @@ like($output, qr/^Try `(pu --help|perldoc.*)'/m,
     = capture_err($^X, "-Mlib=$path", "t/pu.pl", "--version");
 $output = join "", @output;
 like($output, qr/^This is pu, version 1.00/m, "spots invalid arguments");
+
+}
