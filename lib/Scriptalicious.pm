@@ -19,6 +19,7 @@ BEGIN {
 		     start_timer show_delta show_elapsed getconf
 		     getconf_f sci_unit prompt_for prompt_passwd
 		     prompt_yn prompt_Yn prompt_yN prompt_string
+		     prompt_nY prompt_Ny prompt_ny
 		     prompt_int tsay anydump prompt_regex prompt_sub
 		     prompt_file
 		    );
@@ -727,7 +728,7 @@ sub prompt_string {
     my $prompt = shift;
     my $default = shift;
     prompt_sub($prompt.(defined($default)?" [$default]":""),
-		 sub { $_ || $default });
+		 sub { $_ || $default || $_ });
 }
 
 sub prompt_int {
@@ -741,23 +742,26 @@ sub prompt_int {
 sub prompt_nY { prompt_Yn(@_) }
 sub prompt_Yn {
     prompt_sub ($_[0]." [Yn]",
-		  sub {( /^\s*(?: (?:(y.*))? | (n.*))\s*$/ix &&
-			 ($2 ? 0 : (defined($1) ? 1 : undef)) 
-		       )} );
+		sub { ( /^\s*(?: (?:(y.*))? | (n.*))\s*$/ix
+			? ($2 ? 0 : 1)
+			: undef )},
+	       );
 }
+sub prompt_ny { prompt_yn(@_) }
 sub prompt_yn {
     prompt_sub ($_[0]." [yn]",
-		  sub {( /^\s*(?: (y.*) | (n.*))\s*$/ix &&
-			 ($2 ? 0 : ($1 ? 1 : undef)) 
-		       )},
-		  "please enter `yes', or `no'" );
+		sub {( /^\s*(?: (y.*) | (n.*))\s*$/ix
+		       ? ($2 ? 0 : ($1 ? 1 : undef))
+		       : undef
+		     )},
+		"please enter `yes', or `no'" );
 }
 sub prompt_Ny { prompt_yN(@_) }
 sub prompt_yN {
     prompt_sub ($_[0]." [Ny]",
-		  sub {( /^\s*(?: (y.*)? | (?:(n.*))? )\s*$/ix &&
-			 ($1 ? 1 : (defined($2) ? 0 : undef)) 
-		       )} );
+		sub {( /^\s*(?: (y.*)? | (?:(n.*))? )\s*$/ix
+		       ? ($1 ? 1 : 0)
+		       : undef )} );
 }
 
 sub prompt_file {

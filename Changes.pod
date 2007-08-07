@@ -9,6 +9,8 @@
 
 Go back to C<ExtUtils::MakeMaker>.
 
+=item Fix various problems with prompt_*
+
 =back
 
 =head2 VERSION 1.10

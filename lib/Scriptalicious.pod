@@ -391,6 +391,8 @@ prompts for yes or no, presuming neither
 
 prompts for yes or no, presuming yes and no, respectively.
 
+You can also spell these as C<prompt_nY> and C<prompt_Ny>.
+
 =item B<anydump($ref)>
 
 Dump C<$ref> via C<YAML>, falling back to C<Data::Dumper> if YAML
