@@ -23,4 +23,5 @@ WriteMakefile
 		    'Test::More' => 0,
 		    'Term::ReadKey' => 0,
 		   },
+      NO_META => 0,
     );

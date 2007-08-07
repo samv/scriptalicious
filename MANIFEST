@@ -1,9 +1,9 @@
-MANIFEST
-README
 Changes.pod
-META.yml
-lib/Scriptalicious.pm		Mmm, Scriptalicious
-lib/Scriptalicious.pod		POD's what it's all about, baby!
+lib/Scriptalicious.pm
+lib/Scriptalicious.pod
+MANIFEST
+MANIFEST.SKIP
+README
 t/01-mmmdelicious.t
 t/02-script.t
 t/03-yaml.t
@@ -11,15 +11,15 @@ t/04-fork.t
 t/05-prompt.t
 t/06-anydump.t
 t/07-tsay.t
-t/pu.pl
+t/dump.pl
+t/eg.conf
 t/fork.pl
 t/loopback.pl
-t/prompter.pl
-t/dump.pl
-t/Util.pm
-t/eg.conf
-Makefile.PL
 t/missing/Pod/Constants.pm
 t/missing/Template.pm
 t/missing/YAML.pm
+t/prompter.pl
+t/pu.pl
 t/tsay.pl
+t/Util.pm
+TODO
