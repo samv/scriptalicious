@@ -28,7 +28,7 @@ BEGIN {
 # define this in subclasses where appropriate
 sub __package__ { __PACKAGE__ }
 
-our ($VERBOSE, $closure, $SHOW_CMD_VERBOSE);
+our ($VERBOSE, $closure, $SHOW_CMD_VERBOSE, $gotconf);
 $VERBOSE = 0;
 $SHOW_CMD_VERBOSE = 1;
 
@@ -68,6 +68,7 @@ sub getopt {
 
     local($closure) = \&show_usage;
 
+    $gotconf = 1;
     Getopt::Long::GetOptions
 	    (
 	     'help|h' => \&show_help,
@@ -87,14 +88,17 @@ sub getopt {
 	if $#ARGV >= 0 and $ARGV[0] =~ m/^-/;
 }
 
-sub say { print "$PROGNAME: @_\n" unless $VERBOSE < 0 }
+sub say { _autoconf() unless $gotconf;
+	  print "$PROGNAME: @_\n" unless $VERBOSE < 0 }
 sub mutter { say @_ if $VERBOSE }
 sub whisper { say @_ if $VERBOSE > 1 }
-sub _err_say { print STDERR "$PROGNAME: @_\n" }
+sub _err_say { _autoconf() unless $gotconf;
+	       print STDERR "$PROGNAME: @_\n" }
 sub abort { _err_say "aborting: @_"; &show_usage; }
 sub moan { _err_say "warning: @_" }
 sub protest { _err_say "error: @_" }
 sub barf { if($^S){die @_}else{ _err_say "ERROR: @_"; exit(1); } }
+sub _autoconf { getopt( eval{ my @x = getconf(@_); @x } ) }
 
 #---------------------------------------------------------------------
 #  helpers for running commands and/or capturing their output

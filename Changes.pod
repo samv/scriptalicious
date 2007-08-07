@@ -13,6 +13,8 @@ Go back to C<ExtUtils::MakeMaker>.
 
 =item Add C<hush_exec> and C<unhush_exec> functions
 
+=item Make C<getopt()> optional for getting verbosity right
+
 =back
 
 =head2 VERSION 1.10
