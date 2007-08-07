@@ -11,6 +11,8 @@ Go back to C<ExtUtils::MakeMaker>.
 
 =item Fix various problems with prompt_*
 
+=item Add C<hush_exec> and C<unhush_exec> functions
+
 =back
 
 =head2 VERSION 1.10

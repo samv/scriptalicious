@@ -21,7 +21,7 @@ BEGIN {
 		     prompt_yn prompt_Yn prompt_yN prompt_string
 		     prompt_nY prompt_Ny prompt_ny
 		     prompt_int tsay anydump prompt_regex prompt_sub
-		     prompt_file
+		     prompt_file hush_exec unhush_exec
 		    );
 }
 
@@ -110,6 +110,15 @@ sub shellquote {
         s/[\0-\031"\s\177-\377]/$map{$&}/eg;
         $_ = "\"$_\"";
     }; $_ } map { $_ } @_);
+}
+
+our @SHOW_CMD_VERBOSE;
+sub hush_exec {
+    push @SHOW_CMD_VERBOSE, $SHOW_CMD_VERBOSE;
+    $SHOW_CMD_VERBOSE=2;
+}
+sub unhush_exec {
+    $SHOW_CMD_VERBOSE = pop @SHOW_CMD_VERBOSE;
 }
 
 our @last_cmd;

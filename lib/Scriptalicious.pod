@@ -328,6 +328,16 @@ Usage:
 
    my ($rc, @output) = capture_err("somecommand", @args);
 
+=item B<hush_exec()>
+
+=item B<unhush_exec()>
+
+C<hush_exec> is used to indicate that the programs you are running are
+only of interest to someone debugging the script.  So, the messages
+showing commands run and giving execution timings will not be printed
+without C<-vv> (double verbose) or C<-d> (debug, which is the same
+thing).
+
 =item B<start_timer()>
 
 =item B<show_delta()>
