@@ -28,8 +28,9 @@ BEGIN {
 # define this in subclasses where appropriate
 sub __package__ { __PACKAGE__ }
 
-our ($VERBOSE, $closure);
+our ($VERBOSE, $closure, $SHOW_CMD_VERBOSE);
 $VERBOSE = 0;
+$SHOW_CMD_VERBOSE = 1;
 
 #---------------------------------------------------------------------
 #  parse import arguments and export symbols
@@ -123,7 +124,7 @@ sub run {
          (($? >> 8)
           ? "exited with error code ".($?>>8)
           : "killed by signal $?")
-         .(($VERBOSE >= 1 or $next_cmd_no_hide) ? ""
+         .(($VERBOSE >= $SHOW_CMD_VERBOSE or $next_cmd_no_hide) ? ""
            : (($start != 0
 	       ? "\nlast lines of output:\n"
 	       : "\nprogram output:\n")
@@ -137,7 +138,7 @@ sub run {
 sub do_fork {
     @output = ();
     if (not $next_cmd_capture and
-	( $VERBOSE >= 1 or $next_cmd_no_hide )) {
+	( $VERBOSE >= $SHOW_CMD_VERBOSE or $next_cmd_no_hide )) {
         return fork()
     } else {
         my $pid = open CHILD, "-|";
@@ -152,7 +153,7 @@ sub _waitpid {
     my $pid = shift;
 
     if (not $next_cmd_capture and
-	($VERBOSE >= 1 or $next_cmd_no_hide)) {
+	($VERBOSE >= $SHOW_CMD_VERBOSE or $next_cmd_no_hide)) {
         waitpid($pid, 0);
     } else {
         while (<CHILD>) {
@@ -182,12 +183,14 @@ sub run_err {
 	$fd_desc .= ($fd_desc ? ", " : "") . "fd$fd=$mode$fds{$fd}";
     }
     @last_cmd = @_;
-    mutter("running `".shellquote(@last_cmd)."'"
-	   .($next_cmd_capture
-	     ? " (captured)"
-	     : "")
-	   .($fd_desc?"($fd_desc)":"")
-	  ) unless ref($_[0]);
+    if ( $VERBOSE >= $SHOW_CMD_VERBOSE ) {
+	say("running `".shellquote(@last_cmd)."'"
+	    .($next_cmd_capture
+	      ? " (captured)"
+	      : "")
+	    .($fd_desc?"($fd_desc)":"")
+	   ) unless ref($_[0]);
+    }
     _load_hires;
 
     my $start = start_timer();
@@ -210,8 +213,10 @@ sub run_err {
             barf "exec failed; $!";
         }
     }
-    mutter sprintf("command completed in ".show_elapsed($start))
-	if $VERBOSE > 0;
+
+    if ( $VERBOSE >= $SHOW_CMD_VERBOSE ) {
+	say sprintf("command completed in ".show_elapsed($start))
+    }
 
     return $?
 
