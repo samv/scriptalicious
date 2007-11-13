@@ -363,6 +363,25 @@ to exa).  Optionally specify a precision which is passed to sprintf()
 From Scriptalicious 1.08, the "u" character is used in place of the
 Greek "mu" due to encoding compatibility issues.
 
+=item B<time_unit($num, [$precision])>
+
+Converts a floating point number of seconds to a human-readable time,
+the precision specifies the number of significant decimal digits,
+which is used to compute a "quanta" for the value given, values below
+which are not displayed.  $precision defaults to 4.
+
+examples:
+
+ time_unit(10.1) => "10.10s"
+ time_unit(1) => "1.000s"
+ time_unit(0.1) => "100ms"
+ time_unit(86401,2) => "1d 0h"
+ time_unit(86401,3) => "1d 0h"
+ time_unit(86401) => "1d 0h:0m"
+ time_unit(86400+3600/2) => "1d 0h:30m"
+ time_unit(86401,5) => "1d 0h:0m:1s"
+ time_unit(7*86400) => "1w0d 0h"
+
 =item B<prompt_regex($prompt, qr/(.*)/)>
 
 Prompts for something, using the prompt "C<$prompt>", matching the
