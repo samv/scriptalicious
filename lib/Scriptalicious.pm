@@ -456,14 +456,14 @@ sub start_timer {
 sub show_elapsed {
      my $e = tv_interval($_[0]||$start, [gettimeofday()]);
 
-     return sci_unit($e, "s", 3);
+     return time_unit($e, 3);
 }
 
 sub show_delta {
     my $now;
     my $e = tv_interval($_[0]||$last, $now = [gettimeofday()]);
     $last = $now;
-    return sci_unit($e, "s", 3);
+    return time_unit($e, 3);
 }
 
 use POSIX qw(ceil);
