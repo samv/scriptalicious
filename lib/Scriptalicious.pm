@@ -22,6 +22,7 @@ BEGIN {
 		     prompt_nY prompt_Ny prompt_ny
 		     prompt_int tsay anydump prompt_regex prompt_sub
 		     prompt_file hush_exec unhush_exec
+		     getopt_lenient
 		    );
 }
 
@@ -64,8 +65,7 @@ BEGIN {
 
 END { $closure->() if $closure }
 
-sub getopt {
-
+sub getopt_lenient {
     local($closure) = \&show_usage;
 
     $gotconf = 1;
@@ -84,6 +84,13 @@ sub getopt {
 
     shift @ARGV, return if $#ARGV >= 0 and $ARGV[0] eq "--";
 
+}
+
+sub getopt {
+    local($closure) = \&show_usage;
+
+    getopt_lenient(@_);
+
     abort("unrecognised option: $ARGV[0]")
 	if $#ARGV >= 0 and $ARGV[0] =~ m/^-/;
 }
@@ -98,7 +105,7 @@ sub abort { _err_say "aborting: @_"; &show_usage; }
 sub moan { _err_say "warning: @_" }
 sub protest { _err_say "error: @_" }
 sub barf { if($^S){die @_}else{ _err_say "ERROR: @_"; exit(1); } }
-sub _autoconf { getopt( eval{ my @x = getconf(@_); @x } ) }
+sub _autoconf { getopt_lenient( eval{ my @x = getconf(@_); @x } ) }
 
 #---------------------------------------------------------------------
 #  helpers for running commands and/or capturing their output

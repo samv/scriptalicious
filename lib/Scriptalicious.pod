@@ -138,6 +138,11 @@ configuration of B<Getopt::Long>.  To alter the configuration, simply
 call C<Getopt::Long::config>.  See L<Getopt::Long> for more
 information.
 
+=item B<getopt_lenient(@getopt_args)>
+
+Just like C<getopt()>, but doesn't cause a fatal error if there are
+any unknown options.
+
 =item B<getconf(@getopt_args)>
 
 Fetches configuration, takes arguments in the same form as
