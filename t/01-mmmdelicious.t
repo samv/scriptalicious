@@ -33,5 +33,5 @@ my $output = join "", @output;
 is($error, 0, "capture_err() - error code");
 is($output, `head -5 $0`, "capture_err() - output");
 
-like(show_delta, qr/^\d+(\.\d+)?[mµ]?s$/, "show_delta");
-like(show_elapsed, qr/^\d+(\.\d+)?[mµ]?s$/, "show_elapsed");
+like(show_delta, qr/^\d+(\.\d+)?[mu]?s$/, "show_delta");
+like(show_elapsed, qr/^\d+(\.\d+)?[mu]?s$/, "show_elapsed");
