@@ -1,6 +1,20 @@
 
 =head1 WHATS NEW IN SCRIPTALICIOUS
 
+=head2 VERSION 1.12
+
+=over
+
+=item Add getopt_lenient()
+
+=item Add time_unit() function
+
+=item Use time_unit instead of sci_unit in show_elapsed/show_delta
+
+=item Fix test that was still testing for µ
+
+=back
+
 =head2 VERSION 1.11
 
 =over
