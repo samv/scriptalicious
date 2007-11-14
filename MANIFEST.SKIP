@@ -2,4 +2,7 @@
 .gitignore
 .*.tar.gz
 MANIFEST.bak
-Makefile
+Makefile(.bak)?$
+~$
+^blib
+pm_to_blib
