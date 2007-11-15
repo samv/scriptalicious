@@ -1,6 +1,22 @@
 
 =head1 WHATS NEW IN SCRIPTALICIOUS
 
+=head2 VERSION 1.13
+
+=over
+
+=item 5.6.x compat: don't use readline FH; use <FH> instead
+
+=item Don't die if getconf is called without YAML installed; warn instead
+
+=item Make YAML config test conditional on YAML being installed
+
+=item Fix incorrectly written e-mail address in Makefile.PL
+
+=item Remove TODO file; these features have been added!
+
+=back
+
 =head2 VERSION 1.12
 
 =over
