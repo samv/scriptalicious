@@ -17,7 +17,7 @@ WriteMakefile
       VERSION_FROM => "lib/Scriptalicious.pm",
       ( ( $] >= 5.005 ) ?
 	( ABSTRACT => "Make scripts more delicious to SysAdmins",
-	  AUTHOR     => "Sam Vilain <samv@cpan.org>",
+	  AUTHOR     => "Sam Vilain <samv\@cpan.org>",
 	) : () ),
       PREREQ_PM => {
 		    'Test::More' => 0,
