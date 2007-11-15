@@ -1,4 +1,0 @@
-Outstanding bugs:
-
-- doesn't show large times very well (ks, anyone?)
-- 'µs' output is not locale-aware
