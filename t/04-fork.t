@@ -42,7 +42,7 @@ is($output, "", "run out => 'FILENAME' (no output from capture)");
 $output = slurp $testfile;
 like($output, qr/:.*Loop this!/, "run -out => 'FILENAME'");
 
-$output = capture( -out => sub { my $foo = readline STDIN;
+$output = capture( -out => sub { my $foo = <STDIN>;
 				 slop $testfile, $foo;
 			     },
 		   -in  => sub { print "slopslopslop\n" },
