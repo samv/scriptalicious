@@ -24,6 +24,7 @@ $ENV{PERL5LIB} = join ":", "t/missing", split ":", ($ENV{PERL5LIB} || "");
 
 my $output = capture($^X, "t/tsay.pl");
 my $expected = <<'EOM';
+tsay.pl: warning: failed to include YAML; not able to load config
 tsay.pl: warning: install Template Toolkit for prettier messages
 tsay.pl: ----- Template `hello' -----
 Hello, [% name %]
