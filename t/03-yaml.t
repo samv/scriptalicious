@@ -1,6 +1,16 @@
 # -*- perl -*-
 
-use Test::More tests => 9;
+use Test::More;
+
+BEGIN {
+    eval { require YAML; YAML->import };
+    if ($@) {
+        plan skip_all => "YAML not installed";
+    }
+    else {
+        plan tests => 9;
+    }
+}
 
 BEGIN {
     use_ok( 'Scriptalicious', -progname => "myscript" );
