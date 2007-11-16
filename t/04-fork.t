@@ -76,7 +76,7 @@ like($output, qr/:.*easy!/, "run -out4 => 'FILENAME'");
 
 # last out!
 $output = capture( -in5 => sub { print "slurpamunchalot\n" },
-		   -out4  => sub { my $foo = readline STDIN;
+		   -out4  => sub { my $foo = <STDIN>;
 				   slop $testfile, $foo },
 		   $^X, "-Mlib=lib", "t/loopback.pl", qw(-o 4 -i 5));
 is($output, "", "run -out4 => CODE, -in4 => CODE (no output from capture)");
