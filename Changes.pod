@@ -1,6 +1,17 @@
 
 =head1 WHATS NEW IN SCRIPTALICIOUS
 
+=head2 VERSION 1.15
+
+=over
+
+=item Add missing copyright notices and license.
+
+Gah, sorry about this.  Note that it is a retrospective license, so
+you don't need to 'upgrade' to this version to copy the software.
+
+=back
+
 =head2 VERSION 1.14
 
 =over
