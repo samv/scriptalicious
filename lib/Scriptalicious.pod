@@ -496,9 +496,17 @@ If you have solved this problem in a new and interesting way, or even
 rehashed it in an old, boring and inelegant way and want your module
 to be listed here, please contact the
 
-=head1 AUTHOR
+=head1 AUTHOR AND LICENSE
 
-Sam Vilain, samv@cpan.org
+Sam Vilain, L<samv@cpan.org>
+
+Copyright 2005-2008, Sam Vilain.  All rights reserved.  This program
+is free software; you can use it and/or distribute it under the same
+terms as Perl itself; either the latest stable release of Perl when
+the module was written, or any subsequent stable release.
+
+Please note that this applies retrospectively to all Scriptalicious
+releases; apologies for the lack of an explicit license.
 
 =cut
 

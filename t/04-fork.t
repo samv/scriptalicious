@@ -1,5 +1,10 @@
 #!/usr/bin/perl
 
+# Copyright 2005-2008, Sam Vilain.  All rights reserved.  This program
+# is free software; you can use it and/or distribute it under the same
+# terms as Perl itself; either the latest stable release of Perl when
+# the module was written, or any subsequent stable release.
+
 use warnings;
 use strict;
 use t::Util;
