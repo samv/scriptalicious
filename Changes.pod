@@ -10,6 +10,10 @@
 Gah, sorry about this.  Note that it is a retrospective license, so
 you don't need to 'upgrade' to this version to copy the software.
 
+=item Clear PERL5OPT before invoking $^X in tests
+
+To hopefully resolve some false failures
+
 =back
 
 =head2 VERSION 1.14
