@@ -21,6 +21,7 @@ tsay.pl: Yo momma's so fat your family portrait has stretchmarks.", "Template sa
 }
 
 $ENV{PERL5LIB} = join ":", "t/missing", split ":", ($ENV{PERL5LIB} || "");
+delete $ENV{PERL5OPT};
 
 my $output = capture($^X, "t/tsay.pl");
 my $expected = <<'EOM';

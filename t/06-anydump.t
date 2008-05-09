@@ -19,6 +19,7 @@ SKIP: {
 }
 
 $ENV{PERL5LIB} = join ":", "t/missing", split ":", ($ENV{PERL5LIB} || "");
+delete $ENV{PERL5OPT};
 
 my $output = capture($^X, "t/dump.pl");
 is($output, q{$x = {
