@@ -305,7 +305,7 @@ sub _get_pod_usage {
 		     $longest = "";
 		     for my $switch
 			 ($switches =~ m/\G
-					 ((?:-\w|--\w+))
+					 ((?:-\w|--\w[-\w]*))
 					 (?:,\s*)?
 					 /gx) {
 			     push @switches, $switch;
