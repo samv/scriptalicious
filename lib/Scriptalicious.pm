@@ -492,6 +492,10 @@ my @time_mul = (["w", 7*86400], ["d", 86400, " "], ["h", 3600, ":"],
 		[ "ms", 0.001 ], [ "us", 1e-6 ], ["ns", 1e-9]);
 sub time_unit {
     my $scalar = shift;
+    my $neg = $scalar < 0;
+    if ($neg) { 
+        $scalar = -$scalar;
+    }
     my $d = (shift) || 4;
     if ($scalar == 0) {
         return "0s";
@@ -529,7 +533,7 @@ sub time_unit {
 	   $rem = $new_rem;
 	}
     }
-    $rv;
+    ($neg?"-":"").$rv;
 }
 
 my %prefixes=(18=>"E",15=>"P",12=>"T",9=>"G",6=>"M",3=>"k",0=>"",
@@ -537,6 +541,10 @@ my %prefixes=(18=>"E",15=>"P",12=>"T",9=>"G",6=>"M",3=>"k",0=>"",
 
 sub sci_unit {
     my $scalar = shift;
+    my $neg = $scalar < 0 ? "-" : "";
+    if ($neg) {
+        $scalar = -$scalar;
+    }
     my $unit = (shift) || "";
     my $d = (shift) || 4;
     my $e = 0;
@@ -548,10 +556,10 @@ sub sci_unit {
     if (exists $prefixes{$e}) {
 	$d -= ceil(log($scalar)/log(10));
 	$d = 0 if $d < 0;
-	my $a = sprintf("%.${d}f", $scalar);
+	my $a = sprintf("%s%.${d}f", $neg, $scalar);
 	return $a.$prefixes{$e}.$unit;
     } else {
-	return sprintf("%${d}e", $scalar).$unit;
+	return sprintf("%s%${d}e", $neg, $scalar).$unit;
     }
 
 }
