@@ -24,6 +24,7 @@ BEGIN {
 
     our @EXPORT = qw(say mutter whisper abort moan barf run run_err
 		     capture capture_err getopt $VERBOSE $PROGNAME
+		     $CONFIG
 		     start_timer show_delta show_elapsed getconf
 		     getconf_f sci_unit prompt_for prompt_passwd
 		     prompt_yn prompt_Yn prompt_yN prompt_string
@@ -66,6 +67,7 @@ sub import {
 
 # automatically guess the program name if called for
 (our $PROGNAME = $0) =~ s{.*/}{} unless $PROGNAME;
+our $CONFIG;
 
 BEGIN {
     Getopt::Long::config("bundling", "pass_through");
@@ -562,12 +564,13 @@ sub getconf {
         moan "failed to include YAML; not able to load config";
 	return @_;
     }
-    for my $loc ( "$ENV{HOME}/.${PROGNAME}rc",
+    for my $loc ( $CONFIG,
+		  "$ENV{HOME}/.${PROGNAME}rc",
 		  "/etc/perl/$PROGNAME.conf",
 		  "/etc/$PROGNAME.conf",
 		  "POD"
 		) {
-	
+	next if not defined $loc;
 	eval {
 	    $conf_obj = getconf_f($loc, @_);
 	};
@@ -578,6 +581,7 @@ sub getconf {
 		barf "error processing config file $loc; $@";
 	    }
 	} else {
+	    $CONFIG = $loc;
 	    last;
 	}
     }

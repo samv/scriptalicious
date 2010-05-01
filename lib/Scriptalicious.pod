@@ -130,6 +130,12 @@ It is recommended that you only ever read this variable, and pass it
 in via the import.  This is not automatically extracted from the POD
 for performance reasons.
 
+=item C<$CONFIG>
+
+Name of the configuration file.  Set before a call to C<getconf>, or
+read afterwards to see if a config file was used.  New in
+Scriptalicious 1.16
+
 =item B<getopt(@getopt_args)>
 
 Fetch arguments via C<Getopt::Long::GetOptions>.  The C<bundling>
