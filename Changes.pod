@@ -1,6 +1,42 @@
 
 =head1 WHATS NEW IN SCRIPTALICIOUS
 
+=head2 VERSION 1.16
+
+=over
+
+=item Clear PERL5OPT before invoking $^X in tests
+
+To hopefully resolve some false failures
+
+=item Fix code for case when Time::HiRes is not available
+
+I never got a report about this, but it clearly didn't work!  Guess
+no-one's using a Perl before 5.7.3 or without that module any more.
+
+=item put the magic AUTOLOAD back
+
+Scriptalicious will do most of its core stuff without compiling most
+of itself, and there is an AUTOLOAD hook which puts them into place.
+I decided to re-enable it.
+
+=item remove (soft) dependency on Pod::Constants
+
+Scriptalicious scripts are less delicious without a working --help,
+and many systems did not bother with this soft dependency, so it is
+of benefit to just implement what that code did instead.
+
+=item new $CONFIG variable
+
+Used for telling where config was read from (or specifying where it is
+to be read from)
+
+=item deal with negative values in sci_unit and time_unit
+
+These functions didn't deal with negative input; fix that.
+
+=back
+
 =head2 VERSION 1.15
 
 =over
@@ -9,10 +45,6 @@
 
 Gah, sorry about this.  Note that it is a retrospective license, so
 you don't need to 'upgrade' to this version to copy the software.
-
-=item Clear PERL5OPT before invoking $^X in tests
-
-To hopefully resolve some false failures
 
 =back
 

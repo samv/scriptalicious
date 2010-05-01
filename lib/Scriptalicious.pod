@@ -498,6 +498,10 @@ the cheap seats!).
 
 L<Getopt::EUCLID> is Damian Conway's take on this.
 
+Finally, if you don't mind the dependencies of Moose (or Mouse), then
+L<MooseX::Getopt> and L<MooseX::SimpleConfig> are much more elegant
+approaches to getopt handling and configuration than this module.
+
 If you have solved this problem in a new and interesting way, or even
 rehashed it in an old, boring and inelegant way and want your module
 to be listed here, please contact the
