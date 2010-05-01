@@ -266,12 +266,12 @@ sub capture2 {
     die "capture2 not implemented yet"
 }
 
-#our $DATA = join "", <DATA>;  close DATA;
-#our ($AUTOLOAD, $l);sub AUTOLOAD{croak"No such function $AUTOLOAD"if
-#$l;(undef,my($f,$n))=ll();$n+=1;eval"package ".__PACKAGE__.";\n"
-#."# line $n \"$f\"\n$DATA"; $@&&die"Error in autoload: $@";
-#$l=1;goto &{$AUTOLOAD};}sub ll{sub{caller()}->();}     "P E A C E";
-#__DATA__
+our $DATA = join "", <DATA>;  close DATA;
+our ($AUTOLOAD, $l);sub AUTOLOAD{croak"No such function $AUTOLOAD"if
+$l;(undef,my($f,$n))=ll();$n+=1;eval"package ".__PACKAGE__.";\n"
+."# line $n \"$f\"\n$DATA"; $@&&die"Error in autoload: $@";
+$l=1;goto &{$AUTOLOAD};}sub ll{sub{caller()}->();}     "P E A C E";
+__DATA__
 
 our ($NAME, $SHORT_DESC, $SYNOPSIS, $DESCRIPTION, @options);
 
