@@ -198,7 +198,7 @@ sub _load_hires {
     eval "use Time::HiRes qw(gettimeofday tv_interval)";
     *gettimeofday = sub { return time() }
 	unless defined &gettimeofday;
-    *tv_interval = sub { return ${$_[0]} - ${$_[1]} }
+    *tv_interval = sub { return ${$_[0]}[0] - ${$_[1]}[0] }
 	unless defined &tv_interval;
 }
 
