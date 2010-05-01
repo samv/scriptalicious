@@ -3,7 +3,7 @@
 use ExtUtils::MakeMaker;
 # See perldoc Module::Build for details of how this works
 
-my @recommends = qw(Text::Wrap Time::HiRes YAML Pod::Constants);
+my @recommends = qw(Text::Wrap Time::HiRes YAML);
 
 for my $module ( @recommends ) {
     eval "use $module";

@@ -276,70 +276,80 @@ __DATA__
 our ($NAME, $SHORT_DESC, $SYNOPSIS, $DESCRIPTION, @options);
 
 #---------------------------------------------------------------------
-#  calls Pod::Constants to get the synopsis, etc, from the calling
-#  script.
+#  get the synopsis, etc, from the calling script.
 #---------------------------------------------------------------------
 sub _get_pod_usage {
-    return if $SYNOPSIS;
-    (undef, my ($fn, $line)) = sub{caller()}->();
-    eval "# line $line \"$fn\"\npackage main;\n".q{
-        our $level;
-        use Pod::Constants;
-        Pod::Constants::import_from_file($0, -trim => 1,
-            'NAME' => sub {
-	my @m;
-	( @m = m/(\S+) - (.*)/ ) &&
-	    do { $Scriptalicious::PROGNAME = $m[0];
-		 $Scriptalicious::SHORT_DESC = $m[1]; }
-	},
-            'SYNOPSIS' => \$Scriptalicious::SYNOPSIS,
-            'DESCRIPTION' => \$Scriptalicious::DESCRIPTION,
-            'COMMAND LINE OPTIONS' => sub {
-	        &Pod::Constants::add_hook
-		   ('*item' => sub {
-                     return unless $level == 1;
-		     my ($switches, $description) =
-			 m/^(.*?)\n\n(.*)/s;
-                     $switches =~ s{[BCI]<([^>]*)>}{$1}g;
-		     my (@switches, $longest);
-		     $longest = "";
-		     for my $switch
-			 ($switches =~ m/\G
-					 ((?:-\w|--\w[-\w]*))
-					 (?:,\s*)?
-					 /gx) {
-			     push @switches, $switch;
-			     if ( length $switch > length $longest) {
-				 $longest = $switch;
-			     }
-			 }
-		     $longest =~ s/^-*//;
-		     push @options,
-			 $longest, {
-				    options => \@switches,
-				    description => $description,
-				   };
-                     });
-                &Pod::Constants::add_hook
-                   ("*over" => sub { $level++ });
-                &Pod::Constants::add_hook
-                   ("*back" => sub {
-                       --$level or do {
-                           &Pod::Constants::delete_hook($_)
-                               foreach qw(*over *back *item);
-                       };
-                    });
-            }
-        );
-    };
-
-    if ( $@ ) {
-	$SYNOPSIS = "(error: Pod::Constants failed to load)";
-    } else {
-	foreach ( $SYNOPSIS, $SHORT_DESC, $DESCRIPTION ) {
-	    $_ ||= "(no text found, no POD given?)";
+	return if $SYNOPSIS;
+	our $level;
+	open SCR_POD, $0 or warn "failed to open $0 for reading; $!";
+	my $targ;
+	my $in_options;
+	my $name_desc;
+	local($_);
+	while (<SCR_POD>) {
+		if ( !m{^=} and $targ ) {
+			$$targ .= $_;
+		}
+		if ( m{^=encoding (\w+)} ) {
+			binmode SCR_POD, ":$1";
+		}
+		elsif ( m{^=head\w\s+SYNOPSIS\s*$} ) {
+			$targ = \$Scriptalicious::SYNOPSIS;
+		}
+		elsif ( m{^=head\w\s+DESCRIPTION\s*$} ) {
+			$targ = \$Scriptalicious::DESCRIPTION;
+		}
+		elsif ( m{^=head\w\s+NAME\s*$} ) {
+			$targ = \$name_desc;
+		}
+		elsif ( m{^=head\w\s+COMMAND[\- ]LINE OPTIONS\s*$} ) {
+			undef($targ);
+			$in_options = 1;
+		}
+		elsif ( $in_options ) {
+			if ( m{^=over} ) {
+				$level++
+			}
+			elsif ( m{^=item\s+(.*)} ) {
+				next unless $level == 1;
+				my $switches = $1;
+				$switches =~ s{[BCI]<([^>]*)>}{$1}g;
+				my (@switches, $longest);
+				$longest = "";
+				for my $switch
+					($switches =~ m/\G
+							((?:-\w|--\w+))
+							(?:,\s*)?
+						       /gx) {
+					push @switches, $switch;
+					if ( length $switch > length $longest) {
+						$longest = $switch;
+					}
+				}
+				$longest =~ s/^-*//;
+				my $opt_hash = {
+					options => \@switches,
+					description => "",
+				};
+				$targ = \$opt_hash->{description};
+				push @options, $longest, $opt_hash;
+			}
+			elsif ( m{^=back} ) {
+				if ( --$level == 0 ) {
+					undef($in_options);
+				}
+			}
+		}
 	}
-    }
+	if ( $name_desc ) {
+		$name_desc =~ m{^(\S+)(?:\s+-\s+(.*))?$};
+		$PROGNAME ||= $1;
+		$SHORT_DESC ||= $2;
+	}
+
+	foreach ( $SYNOPSIS, $SHORT_DESC, $DESCRIPTION ) {
+	    $_ ||= "(not found in POD)";
+	}
 }
 
 sub short_usage {
