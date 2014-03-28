@@ -973,8 +973,10 @@ sub setup_fds {
 
 	    if ( my $pid = fork ) {
 		my $rw = ($mode eq ">" ? "W" : "R");
+		my $wr = ($mode eq ">" ? "R" : "W");
 		open($fd, "$mode&FD${fnum}_$rw")
 		    or barf "failed to re-open fd $fnum $mode CODE; $!";
+		close(\*{"FD${fnum}_$wr"})
 	    } elsif ( !defined $pid ) {
 		barf "fork failed; $!";
 	    } else {
