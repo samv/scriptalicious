@@ -387,6 +387,7 @@ examples:
  time_unit(86400+3600/2) => "1d 0h:30m"
  time_unit(86401,5) => "1d 0h:0m:1s"
  time_unit(7*86400) => "1w0d 0h"
+ time_unit(-0.0002) => "-200us"
 
 =item B<prompt_regex($prompt, qr/(.*)/)>
 
