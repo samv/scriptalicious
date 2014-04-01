@@ -7,7 +7,7 @@
 
 =item Fix deadlock with C<out =E<gt> sub { ... }>
 
-Between Perl versions 5.16.3 and 5.18.2, a change was introduced which
+Between Perl versions 5.16.3 and 5.18.1, a change was introduced which
 exposed a common pipe deadlock bug in this module, if you used closures
 to handle filehandles.
 
