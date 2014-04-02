@@ -9,7 +9,7 @@
 
 Between Perl versions 5.17.5 and 5.17.6, a change was introduced which
 exposed a common pipe deadlock bug in this module, if you used closures
-to handle filehandles.
+which handle filehandles. [closes: RT#85999]
 
 =back
 
