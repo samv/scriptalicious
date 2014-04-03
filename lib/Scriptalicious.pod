@@ -108,7 +108,7 @@ Which will print:
 
   somescript: failed to open somefile; Permission denied
 
-Scriptalicious has no I<hard> dependancies; all the methods, save
+Scriptalicious has no I<hard> dependencies; all the methods, save
 reading passwords from the user, will work in the absence of extra
 installed modules on all versions of Perl from 5.6.0 onwards.
 
@@ -464,7 +464,7 @@ This will print:
 Note that the script goes to lengths to make sure that the information
 is always printed whether or not Template Toolkit is installed.  This
 gets pretty verbose, but at least solves the "argh!  that script
-failed, but I don't know why because it needed this huge dependancy to
+failed, but I don't know why because it needed this huge dependency to
 tell me" problem.
 
 For example, the above would be printed as:
